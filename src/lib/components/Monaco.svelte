@@ -44,14 +44,6 @@
     let { value = $bindable(LOADING), editor = $bindable(undefined) }: Props =
         $props();
 
-    $effect(() => {
-        if (editor !== undefined && value !== LOADING) {
-            if (editor.getValue() !== value) {
-                editor.setValue(value);
-            }
-        }
-    });
-
     onMount(() => {
         (async () => {
             const monaco = await import("monaco-editor");

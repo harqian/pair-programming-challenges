@@ -42,6 +42,8 @@
     }
 
     onMount(() => {
+        if (!socket) return;
+
         socket.addEventListener("message", (event) => {
             try {
                 const data = JSON.parse(event.data);
@@ -81,7 +83,7 @@
 
         // Request timer state on connect
         socket.addEventListener("open", () => {
-            socket!.send(
+            socket.send(
                 JSON.stringify({
                     type: "getOrCreateTimer",
                     clientTime: Date.now(),
@@ -92,7 +94,6 @@
 
     onDestroy(() => {
         if (interval) clearInterval(interval);
-        socket?.close();
     });
 </script>
 

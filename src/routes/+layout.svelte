@@ -1,27 +1,7 @@
 <script lang="ts">
 	import favicon from "$lib/assets/favicon.svg";
-	import { onMount, onDestroy } from "svelte";
-	import PartySocket from "partysocket";
-	import { setPartySocket } from "$lib/partyContext";
 
 	let { children } = $props();
-
-	const socket = new PartySocket({
-		host: `${globalThis.location?.hostname ?? "localhost"}:1999`,
-		room: "pair-challenge",
-		protocol: "ws",
-		startClosed: true,
-	});
-
-	setPartySocket(socket);
-
-	onMount(() => {
-		socket.reconnect();
-	});
-
-	onDestroy(() => {
-		socket.close();
-	});
 </script>
 
 <svelte:head>

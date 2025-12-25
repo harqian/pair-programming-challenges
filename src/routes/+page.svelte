@@ -9,7 +9,7 @@
 
     const ENGINE = new PythonEngine();
 
-    let monacoValue: string | typeof LOADING | undefined = $state(undefined);
+    let monacoValue: string | typeof LOADING | undefined = $state("");
     let monacoEditor: monaco.editor.IStandaloneCodeEditor | undefined =
         $state(undefined);
 
@@ -138,11 +138,39 @@
     }
 </script>
 
-<Monaco bind:value={monacoValue} bind:editor={monacoEditor} />
+<div class="page-container">
+    <div class="editor-section">
+        <Monaco bind:value={monacoValue} bind:editor={monacoEditor} />
+    </div>
 
-<Terminal
-    onCommand={handleCommand}
-    welcomeMessage="🚀 Welcome to the code challenge terminal!
+    <div class="terminal-section">
+        <Terminal
+            onCommand={handleCommand}
+            welcomeMessage="🚀 Welcome to the code challenge terminal!
 
 Type 'run' to execute your Python code or 'help' for available commands."
-/>
+            maxHeight="100%"
+        />
+    </div>
+</div>
+
+<style>
+    .page-container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+    }
+
+    .editor-section {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .terminal-section {
+        height: 200px;
+        flex-shrink: 0;
+    }
+</style>

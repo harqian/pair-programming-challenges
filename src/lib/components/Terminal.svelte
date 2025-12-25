@@ -250,6 +250,10 @@
                     <div
                         class="command-header"
                         onclick={() => toggleCollapse(session.id)}
+                        role="button"
+                        tabindex="0"
+                        onkeydown={(e) =>
+                            e.key === "Enter" && toggleCollapse(session.id)}
                     >
                         <div class="command-info">
                             <span
@@ -261,19 +265,18 @@
                                 {#if session.status === "running"}
                                     <span class="spinner"></span>
                                 {:else if session.status === "error"}
-                                    ✕
+                                    !
                                 {:else}
-                                    ✓
+                                    &gt;
                                 {/if}
                             </span>
-                            <span class="command-text">$ {session.command}</span
-                            >
+                            <span class="command-text">{session.command}</span>
                             <span class="timestamp"
-                                >{formatTime(session.timestamp)}</span
+                                >[{formatTime(session.timestamp)}]</span
                             >
                         </div>
                         <span class="collapse-icon">
-                            {session.collapsed ? "▶" : "▼"}
+                            {session.collapsed ? "+" : "-"}
                         </span>
                     </div>
                 {/if}
@@ -282,6 +285,17 @@
                     <div class="logs-container">
                         {#each session.logs as log}
                             <div class="log-line {log.type}">
+                                <span class="log-marker">
+                                    {#if log.type === "error"}
+                                        [ERR]
+                                    {:else if log.type === "success"}
+                                        [OK]
+                                    {:else if log.type === "warning"}
+                                        [WARN]
+                                    {:else}
+                                        [INFO]
+                                    {/if}
+                                </span>
                                 <span class="log-text">{log.text}</span>
                             </div>
                         {/each}
@@ -297,24 +311,12 @@
             onclick={scrollToBottom}
             aria-label="Scroll to bottom"
         >
-            <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-            >
-                <path d="M12 5v14M19 12l-7 7-7-7" />
-            </svg>
-            <span>New output</span>
+            <span>v NEW DATA v</span>
         </button>
     {/if}
 
     <form onsubmit={handleSubmit} class="input-area">
-        <span class="prompt">$</span>
+        <span class="prompt">&gt;_</span>
         <input
             bind:this={inputRef}
             bind:value={inputValue}
@@ -324,101 +326,94 @@
             spellcheck="false"
             class="terminal-input"
             aria-label="Terminal Input"
-            placeholder="Enter command..."
         />
+        <span class="cursor-block"></span>
     </form>
 </div>
 
 <style>
-    .terminal-container {
-        background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
-        color: #e4e4e7;
-        font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
-        border-radius: 12px;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        box-shadow:
-            0 20px 60px rgba(0, 0, 0, 0.6),
-            0 0 0 1px rgba(255, 255, 255, 0.1);
-        cursor: text;
-        position: relative;
+    /* Theme Variables */
+    :root {
+        --term-bg: #0c0c0c;
+        --term-session-bg: #000000;
+        --term-border: #333333;
+        --term-text: #cccccc;
+        --term-green: #00ff41;
+        --term-cyan: #00ffff;
+        --term-red: #ff3333;
+        --term-yellow: #ffff00;
+        --term-font: "Consolas", "Monaco", "Courier New", monospace;
     }
 
-    .terminal-container::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 32px;
-        background: linear-gradient(
-            180deg,
-            rgba(255, 255, 255, 0.05) 0%,
-            transparent 100%
-        );
-        pointer-events: none;
+    .terminal-container {
+        background-color: var(--term-bg);
+        color: var(--term-text);
+        font-family: var(--term-font);
+        border: 2px solid var(--term-border);
+        border-radius: 0; /* Strict Rectangle */
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        position: relative;
+        /* Crisp edges */
+        box-shadow: 4px 4px 0px #000000;
     }
 
     .terminal-content {
         flex: 1;
         overflow-y: auto;
-        padding: 1.5rem;
-        padding-bottom: 0.5rem;
+        padding: 0;
         scrollbar-width: thin;
-        scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
+        scrollbar-color: var(--term-border) var(--term-bg);
     }
 
+    /* Square Scrollbar for Webkit */
     .terminal-content::-webkit-scrollbar {
-        width: 8px;
+        width: 12px;
     }
 
     .terminal-content::-webkit-scrollbar-track {
-        background: transparent;
+        background: var(--term-bg);
+        border-left: 1px solid var(--term-border);
     }
 
     .terminal-content::-webkit-scrollbar-thumb {
-        background: rgba(139, 92, 246, 0.3);
-        border-radius: 4px;
+        background: var(--term-border);
+        border-radius: 0;
+        border: 2px solid var(--term-bg);
     }
 
     .terminal-content::-webkit-scrollbar-thumb:hover {
-        background: rgba(139, 92, 246, 0.5);
+        background: #555;
     }
 
     .command-session {
-        margin-bottom: 1.5rem;
-        background: rgba(255, 255, 255, 0.02);
-        border-radius: 8px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        overflow: hidden;
-        transition: all 0.2s ease;
+        border-bottom: 1px solid var(--term-border);
+        background: var(--term-session-bg);
+        transition: none; /* Remove smooth transitions */
     }
 
     .command-session:hover {
-        background: rgba(255, 255, 255, 0.03);
-        border-color: rgba(139, 92, 246, 0.2);
+        background: #111;
     }
 
     .command-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0.75rem 1rem;
-        background: rgba(0, 0, 0, 0.2);
+        padding: 0.5rem 1rem;
         cursor: pointer;
         user-select: none;
-        transition: background 0.2s ease;
     }
 
-    .command-header:hover {
-        background: rgba(0, 0, 0, 0.3);
+    .command-header:hover .command-text {
+        text-decoration: underline;
     }
 
     .command-info {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
+        gap: 1rem;
         flex: 1;
     }
 
@@ -426,190 +421,139 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        font-size: 12px;
+        width: 16px;
+        height: 16px;
         font-weight: bold;
+        border-radius: 0; /* Rectangle */
+        font-size: 14px;
     }
 
     .status-icon.running {
-        background: rgba(59, 130, 246, 0.2);
-        color: #60a5fa;
+        color: var(--term-cyan);
     }
-
     .status-icon.completed {
-        background: rgba(34, 197, 94, 0.2);
-        color: #4ade80;
+        color: var(--term-green);
     }
-
     .status-icon.error {
-        background: rgba(239, 68, 68, 0.2);
-        color: #f87171;
+        color: var(--term-red);
     }
 
+    /* Block Spinner */
     .spinner {
         display: inline-block;
-        width: 12px;
-        height: 12px;
-        border: 2px solid rgba(96, 165, 250, 0.3);
-        border-top-color: #60a5fa;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
+        width: 8px;
+        height: 8px;
+        background-color: var(--term-cyan);
+        animation: blink 0.5s step-end infinite;
     }
 
-    @keyframes spin {
-        to {
-            transform: rotate(360deg);
+    @keyframes blink {
+        50% {
+            opacity: 0;
         }
     }
 
     .command-text {
-        color: #a78bfa;
-        font-weight: 500;
-        flex: 1;
+        color: #ffffff;
+        font-weight: 700;
     }
 
     .timestamp {
-        color: #71717a;
-        font-size: 0.875rem;
+        color: #555;
+        font-size: 0.75rem;
+        margin-left: auto;
+        margin-right: 1rem;
     }
 
     .collapse-icon {
-        color: #71717a;
-        font-size: 0.75rem;
-        transition: transform 0.2s ease;
-    }
-
-    .collapsed .collapse-icon {
-        transform: rotate(0deg);
+        color: var(--term-text);
+        font-family: monospace;
+        font-weight: bold;
     }
 
     .logs-container {
-        padding: 1rem;
-        padding-top: 0.5rem;
+        padding: 0.5rem 1rem 1rem 1rem;
+        border-top: 1px dashed #222;
+        background-color: #080808;
     }
 
     .log-line {
-        margin-bottom: 0.5rem;
-        line-height: 1.6;
-        padding-left: 1.5rem;
-        position: relative;
-        word-break: break-word;
+        margin-bottom: 0.25rem;
+        line-height: 1.4;
+        font-size: 0.9rem;
+        display: flex;
+        gap: 0.75rem;
     }
 
-    .log-line::before {
-        content: "•";
-        position: absolute;
-        left: 0.5rem;
-        opacity: 0.5;
+    .log-marker {
+        font-weight: bold;
+        min-width: 60px;
     }
 
     .log-line.info {
-        color: #93c5fd;
+        color: var(--term-text);
     }
-
-    .log-line.info::before {
-        color: #60a5fa;
+    .log-line.info .log-marker {
+        color: #666;
     }
 
     .log-line.success {
-        color: #86efac;
+        color: var(--term-green);
     }
-
-    .log-line.success::before {
-        color: #4ade80;
+    .log-line.success .log-marker {
+        color: var(--term-green);
     }
 
     .log-line.error {
-        color: #fca5a5;
+        color: var(--term-red);
     }
-
-    .log-line.error::before {
-        color: #f87171;
+    .log-line.error .log-marker {
+        color: var(--term-red);
     }
 
     .log-line.warning {
-        color: #fcd34d;
+        color: var(--term-yellow);
     }
-
-    .log-line.warning::before {
-        color: #fbbf24;
+    .log-line.warning .log-marker {
+        color: var(--term-yellow);
     }
 
     .scroll-to-bottom {
         position: absolute;
-        bottom: 80px;
-        right: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.625rem 1rem;
-        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-        color: white;
-        border: none;
-        border-radius: 24px;
-        font-family: inherit;
-        font-size: 0.875rem;
-        font-weight: 500;
+        bottom: 50px;
+        right: 20px;
+        padding: 4px 12px;
+        background: var(--term-bg);
+        color: var(--term-green);
+        border: 1px solid var(--term-green);
+        border-radius: 0;
+        font-family: var(--term-font);
+        font-size: 0.75rem;
+        font-weight: bold;
         cursor: pointer;
-        box-shadow:
-            0 4px 12px rgba(139, 92, 246, 0.4),
-            0 0 0 1px rgba(255, 255, 255, 0.1);
-        transition: all 0.2s ease;
-        animation: slideUp 0.3s ease;
+        box-shadow: 2px 2px 0 #000;
         z-index: 10;
     }
 
     .scroll-to-bottom:hover {
-        transform: translateY(-2px);
-        box-shadow:
-            0 6px 16px rgba(139, 92, 246, 0.5),
-            0 0 0 1px rgba(255, 255, 255, 0.2);
-    }
-
-    .scroll-to-bottom:active {
-        transform: translateY(0);
-    }
-
-    .scroll-to-bottom svg {
-        animation: bounce 1.5s ease-in-out infinite;
-    }
-
-    @keyframes slideUp {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    @keyframes bounce {
-        0%,
-        100% {
-            transform: translateY(0);
-        }
-        50% {
-            transform: translateY(3px);
-        }
+        background: var(--term-green);
+        color: #000;
+        transform: translate(1px, 1px);
+        box-shadow: 1px 1px 0 #000;
     }
 
     .input-area {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
-        padding: 1rem 1.5rem;
-        background: rgba(0, 0, 0, 0.3);
-        border-top: 1px solid rgba(139, 92, 246, 0.2);
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        background: var(--term-bg);
+        border-top: 2px solid var(--term-border);
     }
 
     .prompt {
-        color: #8b5cf6;
+        color: var(--term-green);
         font-weight: bold;
-        font-size: 1.125rem;
         user-select: none;
     }
 
@@ -617,20 +561,12 @@
         flex: 1;
         background: transparent;
         border: none;
-        color: #e4e4e7;
+        color: #fff;
         font-family: inherit;
-        font-size: 0.9375rem;
+        font-size: 1rem;
         outline: none;
         padding: 0;
         margin: 0;
-    }
-
-    .terminal-input::placeholder {
-        color: #52525b;
-        opacity: 1;
-    }
-
-    .terminal-input:focus::placeholder {
-        opacity: 0.5;
+        caret-color: var(--term-green);
     }
 </style>

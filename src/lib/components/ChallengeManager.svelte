@@ -9,7 +9,12 @@
         activeChallengeId: string | null;
     }
 
-    let { onActivate, onDeactivate, activeChallenge, activeChallengeId }: Props = $props();
+    let {
+        onActivate,
+        onDeactivate,
+        activeChallenge,
+        activeChallengeId,
+    }: Props = $props();
 
     let isOpen = $state(false);
     let selectedChallenge = $state<string | null>(null);
@@ -39,6 +44,8 @@
                 };
                 break;
         }
+
+        console.log(config);
 
         onActivate(selectedChallenge, config);
         isOpen = false;

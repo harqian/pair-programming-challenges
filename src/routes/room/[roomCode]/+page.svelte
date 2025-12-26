@@ -299,7 +299,7 @@
         />
     </div>
 
-    <div class="editor-section">
+    <div class="editor-section" class:hidden={!editorVisible}>
         <Monaco bind:value={monacoValue} bind:editor={monacoEditor} />
     </div>
 
@@ -308,7 +308,7 @@
         onmousedown={startResize}
         role="separator"
         aria-orientation="horizontal"
-        tabindex="0"
+        tabindex="-1"
     ></div>
 
     <div class="terminal-section" style="height: {terminalHeight}px">
@@ -343,6 +343,14 @@ Type 'run' to execute your Python code, 'help' for available commands, or 'clear
         flex: 1;
         min-height: 0;
         overflow: hidden;
+    }
+
+    .editor-section.hidden :global(.monaco-editor .view-lines) {
+        opacity: 0;
+    }
+
+    .editor-section.hidden :global(.monaco-editor .cursors-layer) {
+        opacity: 1;
     }
 
     .resize-handle {

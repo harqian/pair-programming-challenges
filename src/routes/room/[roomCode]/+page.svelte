@@ -30,6 +30,16 @@
         | Promise<Engine<EngineResult, AstNode>>
         | undefined = undefined;
 
+    // Functions passed to ChallengeManager - only update Yjs
+    function setChallenge(challengeId: string, config?: any) {
+        yDoc.getMap("challenge").set("active", { id: challengeId, config });
+    }
+
+    function clearChallenge() {
+        yDoc.getMap("challenge").delete("active");
+    }
+
+    // Internal function called by observer - actually activates the challenge
     async function activateChallenge(challengeId: string, config?: any) {
         activeChallenge?.deactivate();
 
@@ -70,15 +80,11 @@
         }
 
         activeChallenge.activate();
-
-        // Sync to yjs
-        yDoc.getMap("challenge").set("active", { id: challengeId, config });
     }
 
     function deactivateChallenge() {
         activeChallenge?.deactivate();
         activeChallenge = null;
-        yDoc.getMap("challenge").delete("active");
     }
 
     // Get room code synchronously
@@ -148,10 +154,22 @@
             }
         }, 100);
 
-        const challengeState = yDoc.getMap<Challenge>("challenge");
+        const challengeState = yDoc.getMap("challenge");
 
-        challengeState.observe(() => {
-            activeChallenge = challengeState.get("current") || null;
+        challengeState.observe(async () => {
+            const data = challengeState.get("active");
+
+            if (
+                data &&
+                typeof data === "object" &&
+                "id" in data &&
+                typeof data.id === "string"
+            ) {
+                const config = "config" in data ? data.config : undefined;
+                await activateChallenge(data.id, config);
+            } else if (!data && activeChallenge) {
+                deactivateChallenge();
+            }
         });
     });
 
@@ -261,8 +279,8 @@
     <div class="controls">
         <ChallengeManager
             {activeChallenge}
-            onActivate={activateChallenge}
-            onDeactivate={deactivateChallenge}
+            onActivate={setChallenge}
+            onDeactivate={clearChallenge}
         />
     </div>
 

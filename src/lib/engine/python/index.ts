@@ -79,11 +79,12 @@ export class PythonEngineResult implements EngineResult {
             stderr: (msg) => result.emitter.emit('stderr', msg),
         });
 
-        pyodide.runPythonAsync(code, {
-            globals: options?.globals ? options.globals(pyodide) : undefined,
-            locals: options?.locals ? options.locals(pyodide) : undefined,
-            filename: options?.filename,
-        })
+        const runOptions: any = {};
+        if (options?.globals) runOptions.globals = options.globals(pyodide);
+        if (options?.locals) runOptions.locals = options.locals(pyodide);
+        if (options?.filename) runOptions.filename = options.filename;
+
+        pyodide.runPythonAsync(code, runOptions)
             .then((finalValue) => result.emitter.emit('finished', { ok: true, value: finalValue }))
             .catch((error) => result.emitter.emit('finished', { ok: false, error: error.message }));
 

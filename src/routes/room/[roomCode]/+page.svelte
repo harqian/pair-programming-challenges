@@ -288,16 +288,16 @@
     bind:this={containerRef}
     class:resizing={isResizing}
 >
-    <Header />
-
-    <div class="controls">
-        <ChallengeManager
-            {activeChallenge}
-            {activeChallengeId}
-            onActivate={setChallenge}
-            onDeactivate={clearChallenge}
-        />
-    </div>
+    <Header>
+        {#snippet middle()}
+            <ChallengeManager
+                {activeChallenge}
+                {activeChallengeId}
+                onActivate={setChallenge}
+                onDeactivate={clearChallenge}
+            />
+        {/snippet}
+    </Header>
 
     <div class="editor-section" class:hidden={!editorVisible}>
         <Monaco bind:value={monacoValue} bind:editor={monacoEditor} />

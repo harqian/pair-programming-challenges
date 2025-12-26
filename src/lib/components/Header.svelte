@@ -95,10 +95,15 @@
     onDestroy(() => {
         if (interval) clearInterval(interval);
     });
+
+    let { middle }: { middle?: import("svelte").Snippet } = $props();
 </script>
 
 <header>
     <h2>Pair Programming Challenge 👬</h2>
+    {#if middle}
+        {@render middle()}
+    {/if}
     <div class="timer-section">
         <span class="timer">{formatTime(elapsed)}</span>
         {#if timerStartedAt === null}

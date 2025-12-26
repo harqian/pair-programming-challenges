@@ -15,15 +15,18 @@
     import * as monaco from "monaco-editor";
     import type * as Y from "yjs";
     import ChallengeManager from "$lib/components/ChallengeManager.svelte";
+    import ProblemSelector from "$lib/components/ProblemSelector.svelte";
     import {
         Challenge,
         CHALLENGES,
         type ChallengeContext,
     } from "$lib/challenges";
+    import { PROBLEMS, type Problem } from "$lib/problems";
     import type { Engine, EngineResult } from "$lib/engine";
 
     let activeChallenge: Challenge | null = $state(null);
     let activeChallengeId: string | null = $state(null);
+    let activeProblem: Problem | null = $state(null);
     let editorVisible = $state(true);
 
     let ENGINE:
@@ -38,6 +41,15 @@
 
     function clearChallenge() {
         yDoc.getMap("challenge").delete("active");
+    }
+
+    // Functions for problem selection
+    function setProblem(problemId: string) {
+        yDoc.getMap("problem").set("active", problemId);
+    }
+
+    function clearProblem() {
+        yDoc.getMap("problem").delete("active");
     }
 
     // Internal function called by observer - actually activates the challenge
@@ -142,6 +154,7 @@
     onMount(() => {
         const yText = yDoc.getText("shared");
         const challengeState = yDoc.getMap("challenge");
+        const problemState = yDoc.getMap("problem");
 
         const waitForEditor = setInterval(() => {
             const model = monacoEditor?.getModel();
@@ -167,6 +180,12 @@
                     const config = "config" in data ? data.config : undefined;
                     activateChallenge(data.id, config);
                 }
+
+                // Check for existing problem after editor is ready
+                const problemId = problemState.get("active");
+                if (typeof problemId === "string" && PROBLEMS[problemId]) {
+                    activeProblem = PROBLEMS[problemId];
+                }
             }
         }, 100);
 
@@ -183,6 +202,15 @@
                 await activateChallenge(data.id, config);
             } else if (!data && activeChallenge) {
                 deactivateChallenge();
+            }
+        });
+
+        problemState.observe(() => {
+            const problemId = problemState.get("active");
+            if (typeof problemId === "string" && PROBLEMS[problemId]) {
+                activeProblem = PROBLEMS[problemId];
+            } else {
+                activeProblem = null;
             }
         });
     });
@@ -236,9 +264,11 @@
             }
 
             const result = await (await ENGINE).run(monacoValue);
+            let stdoutLines: string[] = [];
 
             result.on("stdout", (data: string) => {
                 context.info(data);
+                stdoutLines.push(data);
             });
 
             result.on("stderr", (data: string) => {
@@ -251,7 +281,29 @@
                     if (outcome.ok) {
                         context.success(`Execution completed`);
 
-                        if (outcome.value != undefined) {
+                        // Check answer if problem is active
+                        if (activeProblem) {
+                            // Try to get answer from return value or last stdout line
+                            let answer: string | undefined;
+
+                            if (outcome.value != undefined) {
+                                answer = String(outcome.value).trim();
+                                context.info(`Result: ${answer}`);
+                            } else if (stdoutLines.length > 0) {
+                                // Get last non-empty stdout line
+                                answer = stdoutLines[stdoutLines.length - 1].trim();
+                            }
+
+                            if (answer) {
+                                const expected = String(activeProblem.expectedAnswer).trim();
+
+                                if (answer === expected) {
+                                    context.success(`✓ Correct answer!`);
+                                } else {
+                                    context.error(`✗ Wrong answer. Expected: ${expected}`);
+                                }
+                            }
+                        } else if (outcome.value != undefined) {
                             context.info(`Result: ${outcome.value}`);
                         }
 
@@ -295,6 +347,11 @@
                 {activeChallengeId}
                 onActivate={setChallenge}
                 onDeactivate={clearChallenge}
+            />
+            <ProblemSelector
+                {activeProblem}
+                onSelect={setProblem}
+                onClear={clearProblem}
             />
         {/snippet}
     </Header>

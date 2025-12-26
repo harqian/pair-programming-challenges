@@ -191,7 +191,7 @@
     .panel {
         position: absolute;
         top: 100%;
-        left: 0;
+        right: 0;
         margin-top: 8px;
         background: #1e1e1e;
         border: 1px solid #444;

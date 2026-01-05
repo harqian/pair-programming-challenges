@@ -34,7 +34,6 @@
     let activeChallengeId: string | null = $state(null);
     let activeProblem: Problem | null = $state(null);
     let editorVisible = $state(true);
-    let showCongrats = $state(false);
 
     let ENGINE:
         | Engine<EngineResult, AstNode>
@@ -52,16 +51,14 @@
 
     function setProblem(problemId: string) {
         yDoc.getMap("problem").set("active", problemId);
-        showCongrats = false;
-        // Start timer via Yjs
+        // Start timer via Yjs - scheduled for 10 seconds in the future
         const timerMap = yDoc.getMap("timer");
-        timerMap.set("startedAt", Date.now());
+        timerMap.set("startedAt", Date.now() + 10000);
         timerMap.delete("stoppedAt");
     }
 
     function clearProblem() {
         yDoc.getMap("problem").delete("active");
-        showCongrats = false;
         // Reset timer via Yjs
         const timerMap = yDoc.getMap("timer");
         timerMap.delete("startedAt");
@@ -73,7 +70,6 @@
     }
 
     function closeCongrats() {
-        showCongrats = false;
         clearProblem();
     }
 
@@ -349,11 +345,8 @@
                                     context.success(`✓ Correct answer!`);
                                     const timerMap = yDoc.getMap("timer");
                                     timerMap.set("stoppedAt", Date.now());
-                                    showCongrats = true;
                                 } else {
-                                    context.error(
-                                        `✗ Wrong answer. Expected: ${expected}`,
-                                    );
+                                    context.error(`✗ Wrong answer. Try again!`);
                                 }
                             }
                         } else if (outcome.value != undefined) {
@@ -414,7 +407,23 @@
         {/snippet}
     </Header>
 
-    {#if showCongrats}
+    {#if $timer.countdown !== null}
+        <div class="countdown-overlay">
+            <div class="countdown-content">
+                <h2>Get ready! 📖</h2>
+                {#if activeProblem}
+                    <div class="problem-preview">
+                        <h3>{activeProblem.title}</h3>
+                        <p>{activeProblem.description}</p>
+                    </div>
+                {/if}
+                <p class="instruction">Read the problem description above.</p>
+                <div class="countdown-number">{$timer.countdown}</div>
+            </div>
+        </div>
+    {/if}
+
+    {#if $timer.stoppedAt !== null}
         <div class="congrats-overlay">
             <div class="congrats-card">
                 <h1>🎉 Congratulations! 🎉</h1>
@@ -599,5 +608,67 @@ Type 'run' to execute your Python code, 'help' for available commands, or 'clear
         opacity: 0.9;
         transform: translate(-2px, -2px);
         box-shadow: 2px 2px 0 var(--term-border);
+    }
+
+    .countdown-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1500;
+        backdrop-filter: blur(2px);
+    }
+
+    .countdown-content {
+        background: var(--term-bg);
+        border: 4px solid var(--term-cyan);
+        padding: 2rem;
+        text-align: center;
+        min-width: 300px;
+        box-shadow: 8px 8px 0 var(--term-border);
+    }
+
+    .countdown-content h2 {
+        color: var(--term-cyan);
+        margin-top: 0;
+    }
+
+    .problem-preview {
+        background: var(--term-session-bg);
+        border: 1px solid var(--term-border);
+        padding: 1.5rem;
+        margin: 1rem 0;
+        text-align: left;
+        max-height: 40vh;
+        overflow-y: auto;
+    }
+
+    .problem-preview h3 {
+        margin-top: 0;
+        color: var(--term-yellow);
+    }
+
+    .problem-preview p {
+        white-space: pre-wrap;
+        color: var(--term-text);
+        line-height: 1.5;
+    }
+
+    .instruction {
+        color: var(--term-border);
+        font-style: italic;
+    }
+
+    .countdown-number {
+        font-size: 5rem;
+        font-weight: bold;
+        color: var(--term-yellow);
+        font-family: var(--term-font);
+        margin-top: 1rem;
     }
 </style>

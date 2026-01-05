@@ -100,15 +100,15 @@
 
     .toggle-btn {
         padding: 8px 16px;
-        background: #2c2c2c;
-        border: 1px solid #444;
-        color: #fff;
+        background: var(--term-bg);
+        border: 1px solid var(--term-border);
+        color: var(--term-text);
         cursor: pointer;
         border-radius: 4px;
     }
 
     .toggle-btn:hover {
-        background: #333;
+        background: var(--term-border);
     }
 
     .panel {
@@ -116,8 +116,8 @@
         top: 100%;
         right: 0;
         margin-top: 8px;
-        background: #1e1e1e;
-        border: 1px solid #444;
+        background: var(--term-session-bg);
+        border: 1px solid var(--term-border);
         border-radius: 4px;
         padding: 16px;
         min-width: 400px;
@@ -135,13 +135,13 @@
 
     .header h3 {
         margin: 0;
-        color: #fff;
+        color: var(--term-text);
     }
 
     .header button {
         background: none;
         border: none;
-        color: #888;
+        color: var(--term-text);
         cursor: pointer;
         font-size: 20px;
     }
@@ -157,20 +157,20 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        color: #ccc;
+        color: var(--term-text);
         cursor: pointer;
     }
 
     .description {
-        background: #252525;
+        background: var(--term-bg);
         padding: 12px;
         border-radius: 4px;
         margin-bottom: 16px;
-        color: #ccc;
+        color: var(--term-text);
     }
 
     .description strong {
-        color: #fff;
+        color: var(--term-text);
     }
 
     .description p {
@@ -193,17 +193,18 @@
     }
 
     .select-btn {
-        background: #0e639c;
-        color: #fff;
+        background: var(--term-cyan);
+        color: #000;
     }
 
     .select-btn:disabled {
-        background: #444;
+        background: var(--term-border);
+        color: var(--term-text);
         cursor: not-allowed;
     }
 
     .clear-btn {
-        background: #d9534f;
+        background: var(--term-red);
         color: #fff;
     }
 </style>

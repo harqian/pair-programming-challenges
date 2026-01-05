@@ -39,14 +39,35 @@
     type Props = {
         value?: string | typeof LOADING;
         editor: monaco.editor.IStandaloneCodeEditor | undefined;
+        fontSize?: number;
+        theme?: "dark" | "light";
     };
 
-    let { value = $bindable(LOADING), editor = $bindable(undefined) }: Props =
-        $props();
+    let {
+        value = $bindable(LOADING),
+        editor = $bindable(undefined),
+        fontSize = 14,
+        theme = "dark",
+    }: Props = $props();
+
+    $effect(() => {
+        if (editor) {
+            editor.updateOptions({ fontSize });
+        }
+    });
+
+    let monacoModule: typeof import("monaco-editor") | null = $state(null);
+
+    $effect(() => {
+        if (monacoModule && theme) {
+            monacoModule.editor.setTheme(theme === "dark" ? "terminal" : "terminal-light");
+        }
+    });
 
     onMount(() => {
         (async () => {
             const monaco = await import("monaco-editor");
+            monacoModule = monaco;
 
             // Define terminal-matching theme
             monaco.editor.defineTheme("terminal", {
@@ -54,11 +75,7 @@
                 inherit: false,
                 rules: [
                     { token: "", foreground: "cccccc", background: "0c0c0c" },
-                    {
-                        token: "comment",
-                        foreground: "666666",
-                        fontStyle: "italic",
-                    },
+                    { token: "comment", foreground: "666666", fontStyle: "italic" },
                     { token: "keyword", foreground: "00ff41" },
                     { token: "keyword.control", foreground: "00ff41" },
                     { token: "string", foreground: "ffff00" },
@@ -95,12 +112,35 @@
                 },
             });
 
+            monaco.editor.defineTheme("terminal-light", {
+                base: "vs",
+                inherit: false,
+                rules: [
+                    { token: "", foreground: "333333", background: "f5f5f5" },
+                    { token: "comment", foreground: "888888", fontStyle: "italic" },
+                    { token: "keyword", foreground: "007700" },
+                    { token: "string", foreground: "aa5500" },
+                    { token: "number", foreground: "0066aa" },
+                    { token: "function", foreground: "007700" },
+                    { token: "type", foreground: "0066aa" },
+                ],
+                colors: {
+                    "editor.background": "#f5f5f5",
+                    "editor.foreground": "#333333",
+                    "editorCursor.foreground": "#007700",
+                    "editor.lineHighlightBackground": "#e8e8e8",
+                    "editorLineNumber.foreground": "#999999",
+                    "editorLineNumber.activeForeground": "#007700",
+                    "editor.selectionBackground": "#c0e0ff",
+                },
+            });
+
             editor = monaco.editor.create(container, {
                 value: "# Type your code here",
                 language: "python",
-                theme: "terminal",
+                theme: theme === "dark" ? "terminal" : "terminal-light",
                 fontFamily: "Consolas, Monaco, 'Courier New', monospace",
-                fontSize: 14,
+                fontSize: fontSize,
                 lineHeight: 1.4,
                 minimap: { enabled: false },
                 scrollBeyondLastLine: false,

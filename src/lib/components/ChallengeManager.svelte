@@ -177,15 +177,15 @@
 
     .toggle-btn {
         padding: 8px 16px;
-        background: #2c2c2c;
-        border: 1px solid #444;
-        color: #fff;
+        background: var(--term-bg);
+        border: 1px solid var(--term-border);
+        color: var(--term-text);
         cursor: pointer;
         border-radius: 4px;
     }
 
     .toggle-btn:hover {
-        background: #333;
+        background: var(--term-border);
     }
 
     .panel {
@@ -193,8 +193,8 @@
         top: 100%;
         right: 0;
         margin-top: 8px;
-        background: #1e1e1e;
-        border: 1px solid #444;
+        background: var(--term-session-bg);
+        border: 1px solid var(--term-border);
         border-radius: 4px;
         padding: 16px;
         min-width: 300px;
@@ -211,13 +211,13 @@
 
     .header h3 {
         margin: 0;
-        color: #fff;
+        color: var(--term-text);
     }
 
     .header button {
         background: none;
         border: none;
-        color: #888;
+        color: var(--term-text);
         cursor: pointer;
         font-size: 20px;
     }
@@ -233,7 +233,7 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        color: #ccc;
+        color: var(--term-text);
         cursor: pointer;
     }
 
@@ -243,7 +243,7 @@
         flex-direction: column;
         gap: 8px;
         padding: 8px;
-        background: #252525;
+        background: var(--term-bg);
         border-radius: 4px;
     }
 
@@ -256,9 +256,9 @@
     .config input {
         width: 60px;
         padding: 4px;
-        background: #1e1e1e;
-        border: 1px solid #444;
-        color: #fff;
+        background: var(--term-session-bg);
+        border: 1px solid var(--term-border);
+        color: var(--term-text);
     }
 
     .actions {
@@ -276,17 +276,18 @@
     }
 
     .activate-btn {
-        background: #0e639c;
-        color: #fff;
+        background: var(--term-cyan);
+        color: #000;
     }
 
     .activate-btn:disabled {
-        background: #444;
+        background: var(--term-border);
+        color: var(--term-text);
         cursor: not-allowed;
     }
 
     .deactivate-btn {
-        background: #d9534f;
+        background: var(--term-red);
         color: #fff;
     }
 </style>

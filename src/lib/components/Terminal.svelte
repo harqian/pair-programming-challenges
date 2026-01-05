@@ -451,15 +451,17 @@
 
     export function clear() {
         if (yArray) {
-            // Clear all sessions from the shared yArray
             yArray.doc?.transact(() => {
                 yArray.delete(0, yArray.length);
             });
         } else {
-            // Clear local sessions
             sessions = [];
         }
         collapsedSessions = new Set();
+    }
+
+    export function focus() {
+        inputRef?.focus();
     }
 </script>
 
@@ -602,7 +604,7 @@
     }
 
     .terminal-content::-webkit-scrollbar-thumb:hover {
-        background: #555;
+        background: var(--term-text);
     }
 
     .command-session {
@@ -612,7 +614,7 @@
     }
 
     .command-session:hover {
-        background: #111;
+        background: var(--term-bg);
     }
 
     .command-header {
@@ -671,12 +673,12 @@
     }
 
     .command-text {
-        color: #ffffff;
+        color: var(--term-text);
         font-weight: 700;
     }
 
     .timestamp {
-        color: #555;
+        color: var(--term-border);
         font-size: 0.75rem;
         margin-left: auto;
         margin-right: 1rem;
@@ -690,8 +692,8 @@
 
     .logs-container {
         padding: 0.5rem 1rem 1rem 1rem;
-        border-top: 1px dashed #222;
-        background-color: #080808;
+        border-top: 1px dashed var(--term-border);
+        background-color: var(--term-session-bg);
     }
 
     .log-line {
@@ -711,7 +713,7 @@
         color: var(--term-text);
     }
     .log-line.info .log-marker {
-        color: #666;
+        color: var(--term-border);
     }
 
     .log-line.success {
@@ -778,7 +780,7 @@
         flex: 1;
         background: transparent;
         border: none;
-        color: #fff;
+        color: var(--term-text);
         font-family: inherit;
         font-size: 1rem;
         outline: none;

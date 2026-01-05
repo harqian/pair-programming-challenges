@@ -1,7 +1,13 @@
 <script lang="ts">
 	import favicon from "$lib/assets/favicon.svg";
+	import { settings } from "$lib/settings";
 
 	let { children } = $props();
+
+	$effect(() => {
+		document.documentElement.classList.toggle("light", $settings.theme === "light");
+		document.body.classList.toggle("light", $settings.theme === "light");
+	});
 </script>
 
 <svelte:head>
@@ -29,6 +35,30 @@
 		--term-red: #ff3333;
 		--term-yellow: #ffff00;
 		--term-font: "Consolas", "Monaco", "Courier New", monospace;
+		--resize-bg: #222222;
+		--resize-handle: #444444;
+		--resize-hover-bg: #333333;
+		--resize-hover-handle: #666666;
+	}
+
+	:global(:root.light) {
+		--term-bg: #f5f5f5;
+		--term-session-bg: #ffffff;
+		--term-border: #cccccc;
+		--term-text: #333333;
+		--term-green: #007700;
+		--term-cyan: #0066aa;
+		--term-red: #cc0000;
+		--term-yellow: #aa5500;
+		--resize-bg: #e2e8f0;
+		--resize-handle: #cbd5e1;
+		--resize-hover-bg: #cbd5e1;
+		--resize-hover-handle: #94a3b8;
+	}
+
+	:global(body.light) {
+		background-color: #e8e8e8;
+		color: #333333;
 	}
 
 	:global(.inline-error-message) {

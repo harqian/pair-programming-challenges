@@ -23,6 +23,7 @@
     } from "$lib/challenges";
     import { PROBLEMS, type Problem } from "$lib/problems";
     import type { Engine, EngineResult } from "$lib/engine";
+    import { settings } from "$lib/settings";
 
     let activeChallenge: Challenge | null = $state(null);
     let activeChallengeId: string | null = $state(null);
@@ -121,7 +122,7 @@
     const terminalAwareness = provider.awareness;
 
     // Resizable terminal state
-    let terminalHeight = $state(200);
+    let terminalHeight = $state($settings.terminalHeight);
     let isResizing = $state(false);
     let containerRef: HTMLDivElement | undefined = $state();
 
@@ -149,12 +150,27 @@
         isResizing = false;
         document.removeEventListener("mousemove", onResize);
         document.removeEventListener("mouseup", stopResize);
+        settings.setTerminalHeight(terminalHeight);
     }
 
     onMount(() => {
         const yText = yDoc.getText("shared");
         const challengeState = yDoc.getMap("challenge");
         const problemState = yDoc.getMap("problem");
+
+        function handleKeydown(e: KeyboardEvent) {
+            if (!get(settings).shortcuts) return;
+            if (e.metaKey || e.ctrlKey) {
+                if (e.key === "`") {
+                    e.preventDefault();
+                    terminalRef?.focus();
+                } else if (e.key === "1") {
+                    e.preventDefault();
+                    monacoEditor?.focus();
+                }
+            }
+        }
+        document.addEventListener("keydown", handleKeydown);
 
         const waitForEditor = setInterval(() => {
             const model = monacoEditor?.getModel();
@@ -213,6 +229,8 @@
                 activeProblem = null;
             }
         });
+
+        return () => document.removeEventListener("keydown", handleKeydown);
     });
 
     async function handleCommand(command: string, context: CommandContext) {
@@ -357,7 +375,12 @@
     </Header>
 
     <div class="editor-section" class:hidden={!editorVisible}>
-        <Monaco bind:value={monacoValue} bind:editor={monacoEditor} />
+        <Monaco
+            bind:value={monacoValue}
+            bind:editor={monacoEditor}
+            fontSize={$settings.fontSize}
+            theme={$settings.theme}
+        />
     </div>
 
     <div
@@ -412,10 +435,11 @@ Type 'run' to execute your Python code, 'help' for available commands, or 'clear
 
     .resize-handle {
         height: 6px;
-        background: #333;
+        background: var(--resize-bg);
         cursor: ns-resize;
         flex-shrink: 0;
         position: relative;
+        transition: background-color 0.2s;
     }
 
     .resize-handle::before {
@@ -426,15 +450,16 @@ Type 'run' to execute your Python code, 'help' for available commands, or 'clear
         transform: translate(-50%, -50%);
         width: 40px;
         height: 2px;
-        background: #666;
+        background: var(--resize-handle);
+        transition: background-color 0.2s;
     }
 
     .resize-handle:hover {
-        background: #444;
+        background: var(--resize-hover-bg);
     }
 
     .resize-handle:hover::before {
-        background: #888;
+        background: var(--resize-hover-handle);
     }
 
     .terminal-section {

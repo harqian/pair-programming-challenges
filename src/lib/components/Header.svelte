@@ -111,6 +111,11 @@
                         </div>
                     </div>
                 {/if}
+                <div class="setting-row reset-row">
+                    <button class="reset-settings-btn" onclick={() => settings.reset()}>
+                        Reset to Defaults
+                    </button>
+                </div>
             </div>
         {/if}
     </div>
@@ -237,5 +242,26 @@
         border-radius: 3px;
         font-family: var(--term-font);
         font-size: 0.8rem;
+    }
+
+    .reset-row {
+        justify-content: center;
+        padding-top: 12px;
+        border-top: 1px solid var(--term-border);
+        margin-top: 4px;
+    }
+
+    .reset-settings-btn {
+        width: 100%;
+        background: var(--term-red);
+        color: white;
+        border: none;
+        padding: 6px;
+        font-weight: bold;
+    }
+
+    .reset-settings-btn:hover {
+        opacity: 0.9;
+        background: var(--term-red);
     }
 </style>

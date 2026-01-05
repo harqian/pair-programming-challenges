@@ -20,6 +20,7 @@ function createSettings() {
         setTerminalHeight: (height: number) => update(s => save({ ...s, terminalHeight: height })),
         toggleTheme: () => update(s => save({ ...s, theme: s.theme === "dark" ? "light" : "dark" })),
         toggleShortcuts: () => update(s => save({ ...s, shortcuts: !s.shortcuts })),
+        reset: () => update(() => save(defaults)),
     };
 }
 

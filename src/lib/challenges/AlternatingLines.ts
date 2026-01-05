@@ -1,28 +1,50 @@
 // lib/challenges/AlternatingLines.ts
 import { Challenge, type ChallengeContext } from './base';
 import * as monaco from 'monaco-editor';
+import * as Y from 'yjs';
 
 export class AlternatingLines extends Challenge {
-    private currentHostId: number | null = null;
-    private currentLineNumber: number = 1;
+    private sharedState: Y.Map<any>;
     private players: number[] = [];
     private decorations: string[] = [];
     private previousContent: string = '';
     private isProcessingRelay: boolean = false;
+    private pendingDecorationUpdate: boolean = false;
+
+    // Getters for shared state
+    private get currentHostId(): number | null {
+        return this.sharedState.get('hostId') ?? null;
+    }
+
+    private set currentHostId(value: number | null) {
+        this.sharedState.set('hostId', value);
+    }
+
+    private get currentLineNumber(): number {
+        return this.sharedState.get('lineNumber') ?? 1;
+    }
+
+    private set currentLineNumber(value: number) {
+        this.sharedState.set('lineNumber', value);
+    }
 
     activate(): void {
         console.log('[AlternatingLines] ===== ACTIVATE =====');
         const myClientId = this.context.awareness.clientID;
         console.log('[AlternatingLines] My client ID:', myClientId);
 
-        this.players = Array.from(this.context.awareness.getStates().keys());
-        console.log('[AlternatingLines] Players:', this.players);
+        // Get or create shared state map
+        this.sharedState = this.context.yDoc.getMap('alternatingLinesState');
+
+        this.players = Array.from(this.context.awareness.getStates().keys()).sort((a, b) => a - b);
+        console.log('[AlternatingLines] Players (sorted):', this.players);
 
         const model = this.context.editor.getModel();
         console.log('[AlternatingLines] Model exists:', !!model);
 
-        // Initialize: first player starts as host
-        if (this.players.length > 0) {
+        // Only initialize if no host is set yet (first client to join sets initial state)
+        if (this.sharedState.get('hostId') === undefined && this.players.length > 0) {
+            console.log('[AlternatingLines] Initializing shared state as first client');
             this.currentHostId = this.players[0];
             console.log('[AlternatingLines] Initial host set to:', this.currentHostId);
 
@@ -32,18 +54,42 @@ export class AlternatingLines extends Challenge {
                 const lastLine = model.getLineContent(lineCount);
                 console.log('[AlternatingLines] Model line count:', lineCount);
                 console.log('[AlternatingLines] Last line content:', JSON.stringify(lastLine));
-                // Position at the last line (where new content would be added)
                 this.currentLineNumber = lineCount;
             } else {
                 this.currentLineNumber = 1;
             }
             console.log('[AlternatingLines] Initial current line:', this.currentLineNumber);
         } else {
-            console.log('[AlternatingLines] WARNING: No players found!');
+            console.log('[AlternatingLines] Using existing shared state - host:', this.currentHostId, 'line:', this.currentLineNumber);
         }
 
         this.previousContent = this.context.editor.getValue();
         console.log('[AlternatingLines] Initial content length:', this.previousContent.length);
+
+        // Listen for shared state changes from other clients
+        const stateObserver = () => {
+            console.log('[AlternatingLines] Shared state changed - host:', this.currentHostId, 'line:', this.currentLineNumber);
+            this.updateEditorState();
+        };
+        this.sharedState.observe(stateObserver);
+        this.disposables.push({ dispose: () => this.sharedState.unobserve(stateObserver) });
+
+        // Listen for awareness changes (players joining/leaving)
+        const awarenessHandler = () => {
+            const newPlayers = Array.from(this.context.awareness.getStates().keys()).sort((a, b) => a - b);
+            if (JSON.stringify(newPlayers) !== JSON.stringify(this.players)) {
+                console.log('[AlternatingLines] Players changed:', this.players, '->', newPlayers);
+                this.players = newPlayers;
+                // If current host left, transfer to next available player
+                if (this.currentHostId !== null && !this.players.includes(this.currentHostId)) {
+                    console.log('[AlternatingLines] Host left, transferring to next player');
+                    this.currentHostId = this.players[0] ?? null;
+                    this.updateEditorState();
+                }
+            }
+        };
+        this.context.awareness.on('change', awarenessHandler);
+        this.disposables.push({ dispose: () => this.context.awareness.off('change', awarenessHandler) });
 
         this.updateEditorState();
 
@@ -57,17 +103,22 @@ export class AlternatingLines extends Challenge {
             }
         });
 
-        // Listen for cursor position changes
+        // Listen for cursor position changes - force cursor back to current line if host tries to move away
         const cursorDisposable = this.context.editor.onDidChangeCursorPosition((e) => {
             const myClientId = this.context.awareness.clientID;
-            console.log('[AlternatingLines] Cursor position changed to line:', e.position.lineNumber, 'col:', e.position.column);
-            console.log('[AlternatingLines] Am I host?', myClientId === this.currentHostId, '(my ID:', myClientId, 'host ID:', this.currentHostId, ')');
+            const isHost = myClientId === this.currentHostId;
 
-            if (myClientId === this.currentHostId) {
-                const oldLine = this.currentLineNumber;
-                this.currentLineNumber = e.position.lineNumber;
-                console.log('[AlternatingLines] Updated current line from', oldLine, 'to', this.currentLineNumber);
-                this.updateDecorations();
+            if (isHost && e.position.lineNumber !== this.currentLineNumber) {
+                console.log('[AlternatingLines] Host tried to move to line', e.position.lineNumber, '- forcing back to', this.currentLineNumber);
+                // Force cursor back to the allowed line
+                const model = this.context.editor.getModel();
+                if (model) {
+                    const maxCol = model.getLineMaxColumn(this.currentLineNumber);
+                    this.context.editor.setPosition({
+                        lineNumber: this.currentLineNumber,
+                        column: Math.min(e.position.column, maxCol)
+                    });
+                }
             }
         });
 
@@ -107,7 +158,20 @@ export class AlternatingLines extends Challenge {
     }
 
     private updateDecorations(): void {
-        console.log('[AlternatingLines] --- updateDecorations START ---');
+        // Defer decoration updates to avoid recursive deltaDecorations calls
+        if (this.pendingDecorationUpdate) {
+            return;
+        }
+        this.pendingDecorationUpdate = true;
+
+        requestAnimationFrame(() => {
+            this.pendingDecorationUpdate = false;
+            this.applyDecorations();
+        });
+    }
+
+    private applyDecorations(): void {
+        console.log('[AlternatingLines] --- applyDecorations START ---');
         const model = this.context.editor.getModel();
         if (!model) {
             console.log('[AlternatingLines] No model, skipping decorations');
@@ -164,7 +228,7 @@ export class AlternatingLines extends Challenge {
             this.decorations,
             newDecorations
         );
-        console.log('[AlternatingLines] --- updateDecorations END ---');
+        console.log('[AlternatingLines] --- applyDecorations END ---');
     }
 
     private handleContentChange(e: monaco.editor.IModelContentChangedEvent): void {
@@ -334,6 +398,15 @@ export class AlternatingLines extends Challenge {
             this.isProcessingRelay = false;
             console.log('[AlternatingLines] <<<<< passRelayToPrevious END <<<<<');
         }, 100);
+    }
+
+    deactivate(): void {
+        console.log('[AlternatingLines] Deactivating');
+        // Clear decorations
+        this.decorations = this.context.editor.deltaDecorations(this.decorations, []);
+        // Restore editor to editable
+        this.context.editor.updateOptions({ readOnly: false });
+        super.deactivate();
     }
 
     getConfig() {

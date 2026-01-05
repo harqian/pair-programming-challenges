@@ -69,6 +69,7 @@ type PythonEvents = {
 
 export class PythonEngineResult implements EngineResult {
     private emitter: Emitter<PythonEvents> = mitt();
+    private interruptBuffer: Uint8Array = new Uint8Array(new SharedArrayBuffer(1));
 
     static async run(code: string, options?: { globals?: (pyodide: PyodideAPI) => PyProxy; locals?: (pyodide: PyodideAPI) => PyProxy; filename?: string; }): Promise<PythonEngineResult> {
         const result = new PythonEngineResult();
@@ -78,6 +79,8 @@ export class PythonEngineResult implements EngineResult {
             stdout: (msg) => result.emitter.emit('stdout', msg),
             stderr: (msg) => result.emitter.emit('stderr', msg),
         });
+
+        pyodide.setInterruptBuffer(result.interruptBuffer);
 
         const runOptions: any = {};
         if (options?.globals) runOptions.globals = options.globals(pyodide);
@@ -99,6 +102,10 @@ export class PythonEngineResult implements EngineResult {
     off<K extends keyof PythonEvents>(event: K, listener: (data: PythonEvents[K]) => void): this {
         this.emitter.off(event, listener);
         return this;
+    }
+
+    kill(): void {
+        this.interruptBuffer[0] = 2;
     }
 
     private constructor() { }

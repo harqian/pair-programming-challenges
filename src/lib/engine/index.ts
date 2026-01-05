@@ -6,6 +6,8 @@ export interface EngineResult {
     off(event: 'stdout', listener: (data: string) => void): this;
     off(event: 'stderr', listener: (data: string) => void): this;
     off(event: 'finished', listener: (data: { ok: true, value: any } | { ok: false, error: string }) => void): this;
+
+    kill(): void;
 }
 
 export function* walkAst(node: AstNode): Generator<AstNode> {

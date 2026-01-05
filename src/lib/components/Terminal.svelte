@@ -45,6 +45,8 @@
         private sessionId: string;
         private yArray: Y.Array<CommandSession>;
         private autoScroll: () => void;
+        private killCallback: (() => void) | undefined;
+        private isAlive: boolean = true;
 
         constructor(
             sessionId: string,
@@ -64,6 +66,12 @@
             if (index === -1) return;
 
             const session = arr[index];
+
+            // If the session is no longer running in the shared state, mark dead locally
+            if (session.status !== "running" && this.isAlive) {
+                this.isAlive = false;
+            }
+
             const updated = updater({ ...session, logs: [...session.logs] });
 
             this.yArray.doc?.transact(() => {
@@ -97,7 +105,29 @@
             this.log(text, "warning");
         }
 
+        onceKilled(callback: () => void) {
+            this.killCallback = callback;
+        }
+
+        kill() {
+            if (!this.isAlive) return;
+
+            this.log("^C", "error");
+
+            if (this.killCallback) {
+                try {
+                    this.killCallback();
+                } catch (e) {
+                    console.error("Error in kill callback", e);
+                }
+            }
+
+            this.fail();
+        }
+
         complete() {
+            if (!this.isAlive) return;
+            this.isAlive = false;
             this.updateSession((session) => {
                 session.status = "completed";
                 return session;
@@ -105,6 +135,8 @@
         }
 
         fail() {
+            if (!this.isAlive) return;
+            this.isAlive = false;
             this.updateSession((session) => {
                 session.status = "error";
                 return session;
@@ -141,6 +173,9 @@
     let historyIndex = $state(-1);
     let isNearBottom = $state(true);
     let collapsedSessions = $state<Set<string>>(new Set());
+
+    // Track the current active context to handle Ctrl+C
+    let activeCommandContext = $state<CommandContext | any | null>(null);
 
     const SCROLL_THRESHOLD = 10;
 
@@ -362,12 +397,19 @@
                 yArray,
                 autoScrollIfNeeded,
             );
+
+            // Set active context for Ctrl+C
+            activeCommandContext = context;
+
             inputValue = "";
             onCommand(command, context);
         } else {
             // Fallback for non-yjs mode
             sessions = [...sessions, newSession];
             inputValue = "";
+
+            let killCallback: (() => void) | undefined;
+            let isAlive = true;
 
             // Create a simple context that updates local state
             const localContext = {
@@ -385,26 +427,63 @@
                 error: (text: string) => localContext.log(text, "error"),
                 success: (text: string) => localContext.log(text, "success"),
                 warning: (text: string) => localContext.log(text, "warning"),
+
+                onceKilled: (cb: () => void) => {
+                    killCallback = cb;
+                },
+                kill: () => {
+                    if (!isAlive) return;
+                    localContext.error("^C");
+                    if (killCallback) {
+                        try {
+                            killCallback();
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    }
+                    localContext.fail();
+                },
+
                 complete: () => {
+                    if (!isAlive) return;
+                    isAlive = false;
                     const idx = sessions.findIndex((s) => s.id === sessionId);
                     if (idx !== -1) {
                         sessions[idx].status = "completed";
                         autoScrollIfNeeded();
                     }
+                    if (activeCommandContext === localContext)
+                        activeCommandContext = null;
                 },
                 fail: () => {
+                    if (!isAlive) return;
+                    isAlive = false;
                     const idx = sessions.findIndex((s) => s.id === sessionId);
                     if (idx !== -1) {
                         sessions[idx].status = "error";
                         autoScrollIfNeeded();
                     }
+                    if (activeCommandContext === localContext)
+                        activeCommandContext = null;
                 },
             };
+
+            activeCommandContext = localContext;
             onCommand(command, localContext as unknown as CommandContext);
         }
     }
 
     function handleKeyDown(e: KeyboardEvent) {
+        if (e.ctrlKey && e.key === "c") {
+            if (activeCommandContext) {
+                e.preventDefault();
+                activeCommandContext.kill();
+                activeCommandContext = null;
+                autoScrollIfNeeded();
+                return;
+            }
+        }
+
         if (e.key === "ArrowUp") {
             e.preventDefault();
             if (commandHistory.length === 0) return;
@@ -577,6 +656,11 @@
                 error: (text: string) => localContext.log(text, "error"),
                 success: (text: string) => localContext.log(text, "success"),
                 warning: (text: string) => localContext.log(text, "warning"),
+
+                // Add stubbed kill methods for exec calls (not interactive, so no user kill)
+                onceKilled: () => {},
+                kill: () => {},
+
                 complete: () => {
                     const idx = sessions.findIndex((s) => s.id === sessionId);
                     if (idx !== -1) {

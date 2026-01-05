@@ -344,6 +344,12 @@
             const result = await (await ENGINE).run(monacoValue);
             let stdoutLines: string[] = [];
 
+            context.onceKilled(() => {
+                result.kill();
+                context.error("Execution killed by user");
+                context.fail();
+            });
+
             result.on("stdout", (data: string) => {
                 context.info(data);
                 stdoutLines.push(data);

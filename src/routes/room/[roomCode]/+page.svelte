@@ -21,6 +21,7 @@
         Challenge,
         CHALLENGES,
         type ChallengeContext,
+        type FailureInfo,
     } from "$lib/challenges";
     import { PROBLEMS, type Problem } from "$lib/problems";
     import type { Engine, EngineResult } from "$lib/engine";
@@ -35,6 +36,7 @@
     let activeChallengeId: string | null = $state(null);
     let activeProblem: Problem | null = $state(null);
     let editorVisible = $state(true);
+    let failureInfo: FailureInfo | null = $state(null);
 
     let ENGINE:
         | Engine<EngineResult, AstNode>
@@ -74,6 +76,13 @@
         clearProblem();
     }
 
+    function closeFailure() {
+        // CHANGED: Only clear local state.
+        // We do NOT delete from yDoc here, or it would close for everyone.
+        failureInfo = null;
+        clearProblem();
+    }
+
     // Internal function called by observer - actually activates the challenge
     async function activateChallenge(challengeId: string, config?: any) {
         activeChallenge?.deactivate();
@@ -101,6 +110,15 @@
                         ownerId: -1,
                     },
                 ]);
+            },
+            onFail: (info: FailureInfo) => {
+                console.log("Challenge failed:", info);
+                // CHANGED: Add timestamp. This ensures that even if the same error
+                // happens twice, Yjs sees it as a "new" change and re-opens the window.
+                yDoc.getMap("failure").set("info", {
+                    ...info,
+                    timestamp: Date.now(),
+                });
             },
             exec(command: string) {
                 return terminalRef?.exec(command);
@@ -182,6 +200,7 @@
         const challengeState = yDoc.getMap("challenge");
         const problemState = yDoc.getMap("problem");
         const timerState = yDoc.getMap("timer");
+        const failureState = yDoc.getMap("failure");
 
         timer.bindToYMap(timerState);
 
@@ -231,6 +250,20 @@
                 }
             }
         }, 100);
+
+        // CHANGED: Observer logic
+        failureState.observe(() => {
+            const info = failureState.get("info");
+            // Always update local state when shared state changes
+            if (info) {
+                failureInfo = info as FailureInfo;
+            }
+        });
+
+        const currentFailure = failureState.get("info");
+        if (currentFailure) {
+            failureInfo = currentFailure as FailureInfo;
+        }
 
         challengeState.observe(async () => {
             const data = challengeState.get("active");
@@ -443,6 +476,24 @@
                     >
                 </div>
                 <button onclick={closeCongrats}>Awesome!</button>
+            </div>
+        </div>
+    {/if}
+
+    {#if failureInfo !== null}
+        <div class="failure-overlay">
+            <div class="failure-card">
+                <h1>{failureInfo.title ?? "Challenge Failed"}</h1>
+                <p class="failure-reason">{failureInfo.reason}</p>
+                {#if failureInfo.details}
+                    <div class="failure-details">
+                        <pre>{failureInfo.details}</pre>
+                    </div>
+                {/if}
+                {#if failureInfo.suggestion}
+                    <p class="failure-suggestion">{failureInfo.suggestion}</p>
+                {/if}
+                <button onclick={closeFailure}>Try Again</button>
             </div>
         </div>
     {/if}
@@ -678,5 +729,82 @@ Type 'run' to execute your Python code, 'help' for available commands, or 'clear
         color: var(--term-yellow);
         font-family: var(--term-font);
         margin-top: 1rem;
+    }
+
+    .failure-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        backdrop-filter: blur(4px);
+    }
+
+    .failure-card {
+        background: var(--term-bg);
+        border: 4px solid var(--term-red);
+        padding: 2rem;
+        text-align: center;
+        max-width: 500px;
+        box-shadow: 8px 8px 0 var(--term-border);
+    }
+
+    .failure-card h1 {
+        color: var(--term-red);
+        margin-top: 0;
+    }
+
+    .failure-reason {
+        color: var(--term-text);
+        font-size: 1.1rem;
+        margin: 1rem 0;
+    }
+
+    .failure-details {
+        background: var(--term-session-bg);
+        border: 1px solid var(--term-border);
+        padding: 1rem;
+        margin: 1rem 0;
+        text-align: left;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .failure-details pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: var(--term-red);
+        font-family: var(--term-font);
+        font-size: 0.9rem;
+    }
+
+    .failure-suggestion {
+        color: var(--term-cyan);
+        font-style: italic;
+        margin: 1rem 0;
+    }
+
+    .failure-card button {
+        background: var(--term-red);
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        font-family: var(--term-font);
+        font-weight: bold;
+        cursor: pointer;
+        font-size: 1rem;
+        margin-top: 0.5rem;
+    }
+
+    .failure-card button:hover {
+        opacity: 0.9;
+        transform: translate(-2px, -2px);
+        box-shadow: 2px 2px 0 var(--term-border);
     }
 </style>

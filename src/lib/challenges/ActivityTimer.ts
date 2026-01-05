@@ -51,9 +51,25 @@ export class ActivityTimer extends Challenge {
             this.hasTriggeredAllLocked = true;
             let result = this.context.exec("run")!;
 
+            console.log(result);
+
             result.onLog(log => {
+                console.log("Log from execution:", log);
+
                 if (log.type === "error" && log.text.toUpperCase().includes("EXECUTION FAILED")) {
-                    alert("Execution failed :( you ran out of time!");
+                    this.context.onFail({
+                        reason: "All players have been locked out due to inactivity.",
+                        details: "The code execution failed because no one could make edits.",
+                        suggestion: "Consider restarting the challenge and staying active."
+                    });
+                }
+
+                if (log.type === "warning" && log.text.toUpperCase().includes("NO CODE TO EXECUTE")) {
+                    this.context.onFail({
+                        reason: "All players have been locked out due to inactivity.",
+                        details: "The code execution could not proceed because there was no code to run.",
+                        suggestion: "Consider restarting the challenge and staying active."
+                    });
                 }
             });
         }

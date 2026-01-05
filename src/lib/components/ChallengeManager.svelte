@@ -2,21 +2,19 @@
 <script lang="ts">
     import { CHALLENGES, type Challenge } from "$lib/challenges";
 
-    interface Props {
-        onActivate: (challengeId: string, config?: any) => void;
-        onDeactivate: () => void;
-        activeChallenge: Challenge | null;
-        activeChallengeId: string | null;
-        theme?: "dark" | "light";
-    }
-
     let {
         onActivate,
         onDeactivate,
         activeChallenge,
         activeChallengeId,
         theme = "dark",
-    }: Props = $props();
+    }: {
+        onActivate: (challengeId: string, config?: any) => void;
+        onDeactivate: () => void;
+        activeChallenge: Challenge | null;
+        activeChallengeId: string | null;
+        theme?: "dark" | "light";
+    } = $props();
 
     let isOpen = $state(false);
     let selectedChallenge = $state<string | null>(null);

@@ -5,12 +5,20 @@ import type { Awareness } from "y-protocols/awareness";
 import type { AstNode, Engine, EngineResult } from "$lib/engine";
 import type { SessionWatcher } from "$lib/components/Terminal.svelte";
 
+export interface FailureInfo {
+    title?: string;
+    reason: string;
+    details?: string;
+    suggestion?: string;
+}
+
 export interface ChallengeContext {
     editor: monaco.editor.IStandaloneCodeEditor;
     yDoc: Y.Doc;
     awareness: Awareness;
     engine: Engine<EngineResult, AstNode>;
     onMessage: (type: 'info' | 'error' | 'warning', message: string) => void;
+    onFail: (info: FailureInfo) => void;
     exec(command: string): SessionWatcher | undefined;
 }
 

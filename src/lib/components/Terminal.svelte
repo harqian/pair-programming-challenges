@@ -239,7 +239,11 @@
 
             if (!newYArray) {
                 // Non-yjs mode: show welcome message locally if not already shown
-                if (!initializedWithYArray && sessions.length === 0 && welcomeMessage) {
+                if (
+                    !initializedWithYArray &&
+                    sessions.length === 0 &&
+                    welcomeMessage
+                ) {
                     sessions = [
                         {
                             id: "welcome",
@@ -493,10 +497,18 @@
 
         const watcher: SessionWatcher = {
             sessionId,
-            onLog: (cb) => { logCallbacks.push(cb); },
-            onComplete: (cb) => { completeCallbacks.push(cb); },
-            onError: (cb) => { errorCallbacks.push(cb); },
-            dispose: () => { disposed = true; },
+            onLog: (cb) => {
+                logCallbacks.push(cb);
+            },
+            onComplete: (cb) => {
+                completeCallbacks.push(cb);
+            },
+            onError: (cb) => {
+                errorCallbacks.push(cb);
+            },
+            dispose: () => {
+                disposed = true;
+            },
         };
 
         // Watch for session changes
@@ -539,7 +551,12 @@
                 yArray,
                 autoScrollIfNeeded,
             );
-            onCommand(trimmedCommand, context);
+
+            setTimeout(() => {
+                if (!disposed) {
+                    onCommand!(trimmedCommand, context);
+                }
+            }, 0);
         } else {
             // Fallback for non-yjs mode - wrap local context to trigger checks
             sessions = [...sessions, newSession];
@@ -577,12 +594,20 @@
                     }
                 },
             };
-            onCommand(trimmedCommand, localContext as unknown as CommandContext);
+
+            setTimeout(() => {
+                if (!disposed) {
+                    onCommand!(
+                        trimmedCommand,
+                        localContext as unknown as CommandContext,
+                    );
+                }
+            }, 0);
         }
 
         return watcher;
     }
-        
+
     export function focus() {
         inputRef?.focus();
     }

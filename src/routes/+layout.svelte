@@ -97,6 +97,13 @@
 		background-color: rgba(108, 117, 125, 0.1);
 	}
 
+	:global(.relay-active-glyph::before) {
+		content: "●";
+		color: #28a745;
+		font-size: 12px;
+		margin-left: 4px;
+	}
+
 	:global(.relay-locked-glyph) {
 		background-color: #6c757d;
 		border-radius: 2px;

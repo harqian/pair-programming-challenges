@@ -16,6 +16,7 @@
     import type * as Y from "yjs";
     import ChallengeManager from "$lib/components/ChallengeManager.svelte";
     import ProblemSelector from "$lib/components/ProblemSelector.svelte";
+    import TimerOverlay from "$lib/components/TimerOverlay.svelte";
     import {
         Challenge,
         CHALLENGES,
@@ -100,6 +101,9 @@
                         ownerId: -1,
                     },
                 ]);
+            },
+            exec(command: string) {
+                return terminalRef?.exec(command);
             },
         };
 
@@ -450,6 +454,9 @@
             fontSize={$settings.fontSize}
             theme={$settings.theme}
         />
+        {#if activeChallengeId === "activity-timer"}
+            <TimerOverlay awareness={terminalAwareness} />
+        {/if}
     </div>
 
     <div
@@ -492,6 +499,7 @@ Type 'run' to execute your Python code, 'help' for available commands, or 'clear
         flex: 1;
         min-height: 0;
         overflow: hidden;
+        position: relative;
     }
 
     .editor-section.hidden :global(.monaco-editor .view-lines) {

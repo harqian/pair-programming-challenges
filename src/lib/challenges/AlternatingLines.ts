@@ -66,6 +66,9 @@ export class AlternatingLines extends Challenge {
         this.previousContent = this.context.editor.getValue();
         console.log('[AlternatingLines] Initial content length:', this.previousContent.length);
 
+        // Enable glyph margin for decorations
+        this.context.editor.updateOptions({ glyphMargin: true });
+
         // Listen for shared state changes from other clients
         const stateObserver = () => {
             console.log('[AlternatingLines] Shared state changed - host:', this.currentHostId, 'line:', this.currentLineNumber);
@@ -404,8 +407,8 @@ export class AlternatingLines extends Challenge {
         console.log('[AlternatingLines] Deactivating');
         // Clear decorations
         this.decorations = this.context.editor.deltaDecorations(this.decorations, []);
-        // Restore editor to editable
-        this.context.editor.updateOptions({ readOnly: false });
+        // Restore editor options
+        this.context.editor.updateOptions({ readOnly: false, glyphMargin: false });
         super.deactivate();
     }
 

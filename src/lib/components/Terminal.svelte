@@ -460,6 +460,129 @@
         collapsedSessions = new Set();
     }
 
+    export interface SessionWatcher {
+        sessionId: string;
+        onLog: (callback: (log: LogEntry) => void) => void;
+        onComplete: (callback: () => void) => void;
+        onError: (callback: () => void) => void;
+        dispose: () => void;
+    }
+
+    export function exec(command: string): SessionWatcher | undefined {
+        const trimmedCommand = command.trim();
+        if (!trimmedCommand) return;
+
+        const sessionId = crypto.randomUUID();
+        const ownerId = awareness?.clientID ?? -1;
+
+        const newSession: CommandSession = {
+            id: sessionId,
+            command: trimmedCommand,
+            timestamp: Date.now(),
+            logs: [],
+            status: "running",
+            ownerId,
+        };
+
+        // Callbacks for watchers
+        const logCallbacks: ((log: LogEntry) => void)[] = [];
+        const completeCallbacks: (() => void)[] = [];
+        const errorCallbacks: (() => void)[] = [];
+        let lastLogCount = 0;
+        let disposed = false;
+
+        const watcher: SessionWatcher = {
+            sessionId,
+            onLog: (cb) => { logCallbacks.push(cb); },
+            onComplete: (cb) => { completeCallbacks.push(cb); },
+            onError: (cb) => { errorCallbacks.push(cb); },
+            dispose: () => { disposed = true; },
+        };
+
+        // Watch for session changes
+        const checkSession = () => {
+            if (disposed) return;
+
+            const arr = yArray ? yArray.toArray() : sessions;
+            const session = arr.find((s) => s.id === sessionId);
+            if (!session) return;
+
+            // Check for new logs
+            if (session.logs.length > lastLogCount) {
+                const newLogs = session.logs.slice(lastLogCount);
+                lastLogCount = session.logs.length;
+                newLogs.forEach((log) => logCallbacks.forEach((cb) => cb(log)));
+            }
+
+            // Check for completion
+            if (session.status === "completed") {
+                completeCallbacks.forEach((cb) => cb());
+                disposed = true;
+            } else if (session.status === "error") {
+                errorCallbacks.forEach((cb) => cb());
+                disposed = true;
+            }
+        };
+
+        if (yArray) {
+            // Watch yArray for changes
+            const observer = () => checkSession();
+            yArray.observe(observer);
+            watcher.dispose = () => {
+                disposed = true;
+                yArray?.unobserve(observer);
+            };
+
+            yArray.push([newSession]);
+            const context = new CommandContext(
+                sessionId,
+                yArray,
+                autoScrollIfNeeded,
+            );
+            onCommand(trimmedCommand, context);
+        } else {
+            // Fallback for non-yjs mode - wrap local context to trigger checks
+            sessions = [...sessions, newSession];
+
+            const localContext = {
+                log: (text: string, type: LogEntry["type"] = "info") => {
+                    const idx = sessions.findIndex((s) => s.id === sessionId);
+                    if (idx !== -1) {
+                        sessions[idx].logs = [
+                            ...sessions[idx].logs,
+                            { text, type, timestamp: Date.now() },
+                        ];
+                        autoScrollIfNeeded();
+                        checkSession();
+                    }
+                },
+                info: (text: string) => localContext.log(text, "info"),
+                error: (text: string) => localContext.log(text, "error"),
+                success: (text: string) => localContext.log(text, "success"),
+                warning: (text: string) => localContext.log(text, "warning"),
+                complete: () => {
+                    const idx = sessions.findIndex((s) => s.id === sessionId);
+                    if (idx !== -1) {
+                        sessions[idx].status = "completed";
+                        autoScrollIfNeeded();
+                        checkSession();
+                    }
+                },
+                fail: () => {
+                    const idx = sessions.findIndex((s) => s.id === sessionId);
+                    if (idx !== -1) {
+                        sessions[idx].status = "error";
+                        autoScrollIfNeeded();
+                        checkSession();
+                    }
+                },
+            };
+            onCommand(trimmedCommand, localContext as unknown as CommandContext);
+        }
+
+        return watcher;
+    }
+        
     export function focus() {
         inputRef?.focus();
     }

@@ -7,12 +7,13 @@ export * from './base';
 
 // Import challenge classes
 import { NoForLoops } from './NoForLoops';
-import { ActivityTimer } from './ActivityTimer';
+import { ActivityTimer, type TimerState } from './ActivityTimer';
 import { AlternatingLines } from './AlternatingLines';
 import { BlindCoding } from './BlindCoding';
 
 // Re-export individual challenges
 export { NoForLoops, ActivityTimer, AlternatingLines, BlindCoding };
+export type { TimerState };
 
 // Registry for dynamic instantiation
 type ChallengeConstructor = new (context: ChallengeContext, ...args: any[]) => Challenge;

@@ -46,4 +46,34 @@
 			center center no-repeat;
 		width: 16px;
 	}
+
+	/* Active line - the line the current host can edit */
+	:global(.relay-active-line) {
+		background-color: rgba(40, 167, 69, 0.15);
+		border-left: 3px solid #28a745;
+	}
+
+	:global(.relay-active-glyph) {
+		background-color: #28a745;
+		border-radius: 50%;
+		margin-left: 5px;
+		width: 8px !important;
+		height: 8px !important;
+		margin-top: 6px;
+	}
+
+	/* Locked lines - lines that cannot be edited */
+	:global(.relay-locked-line) {
+		background-color: rgba(108, 117, 125, 0.1);
+	}
+
+	:global(.relay-locked-glyph) {
+		background-color: #6c757d;
+		border-radius: 2px;
+		margin-left: 5px;
+		width: 8px !important;
+		height: 8px !important;
+		margin-top: 6px;
+		opacity: 0.5;
+	}
 </style>

@@ -6,9 +6,10 @@
         onSelect: (problemId: string) => void;
         onClear: () => void;
         activeProblem: Problem | null;
+        theme?: "dark" | "light";
     }
 
-    let { onSelect, onClear, activeProblem }: Props = $props();
+    let { onSelect, onClear, activeProblem, theme = "dark" }: Props = $props();
 
     let isOpen = $state(false);
     let selectedProblem = $state<string | null>(null);

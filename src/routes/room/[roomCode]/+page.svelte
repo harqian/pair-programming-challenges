@@ -25,10 +25,16 @@
     import type { Engine, EngineResult } from "$lib/engine";
     import { settings } from "$lib/settings";
 
+    import { timer } from "$lib/timerStore";
+    import { getPartySocket } from "$lib/partyContext";
+
+    const socket = getPartySocket();
+
     let activeChallenge: Challenge | null = $state(null);
     let activeChallengeId: string | null = $state(null);
     let activeProblem: Problem | null = $state(null);
     let editorVisible = $state(true);
+    let showCongrats = $state(false);
 
     let ENGINE:
         | Engine<EngineResult, AstNode>
@@ -44,13 +50,31 @@
         yDoc.getMap("challenge").delete("active");
     }
 
-    // Functions for problem selection
     function setProblem(problemId: string) {
         yDoc.getMap("problem").set("active", problemId);
+        showCongrats = false;
+        // Start timer via Yjs
+        const timerMap = yDoc.getMap("timer");
+        timerMap.set("startedAt", Date.now());
+        timerMap.delete("stoppedAt");
     }
 
     function clearProblem() {
         yDoc.getMap("problem").delete("active");
+        showCongrats = false;
+        // Reset timer via Yjs
+        const timerMap = yDoc.getMap("timer");
+        timerMap.delete("startedAt");
+        timerMap.delete("stoppedAt");
+    }
+
+    function giveUp() {
+        clearProblem();
+    }
+
+    function closeCongrats() {
+        showCongrats = false;
+        clearProblem();
     }
 
     // Internal function called by observer - actually activates the challenge
@@ -157,6 +181,9 @@
         const yText = yDoc.getText("shared");
         const challengeState = yDoc.getMap("challenge");
         const problemState = yDoc.getMap("problem");
+        const timerState = yDoc.getMap("timer");
+
+        timer.bindToYMap(timerState);
 
         function handleKeydown(e: KeyboardEvent) {
             if (!get(settings).shortcuts) return;
@@ -309,16 +336,24 @@
                                 context.info(`Result: ${answer}`);
                             } else if (stdoutLines.length > 0) {
                                 // Get last non-empty stdout line
-                                answer = stdoutLines[stdoutLines.length - 1].trim();
+                                answer =
+                                    stdoutLines[stdoutLines.length - 1].trim();
                             }
 
                             if (answer) {
-                                const expected = String(activeProblem.expectedAnswer).trim();
+                                const expected = String(
+                                    activeProblem.expectedAnswer,
+                                ).trim();
 
                                 if (answer === expected) {
                                     context.success(`✓ Correct answer!`);
+                                    const timerMap = yDoc.getMap("timer");
+                                    timerMap.set("stoppedAt", Date.now());
+                                    showCongrats = true;
                                 } else {
-                                    context.error(`✗ Wrong answer. Expected: ${expected}`);
+                                    context.error(
+                                        `✗ Wrong answer. Expected: ${expected}`,
+                                    );
                                 }
                             }
                         } else if (outcome.value != undefined) {
@@ -358,21 +393,46 @@
     bind:this={containerRef}
     class:resizing={isResizing}
 >
-    <Header>
+    <Header theme={$settings.theme}>
         {#snippet middle()}
             <ChallengeManager
                 {activeChallenge}
                 {activeChallengeId}
                 onActivate={setChallenge}
                 onDeactivate={clearChallenge}
+                theme={$settings.theme}
             />
             <ProblemSelector
                 {activeProblem}
                 onSelect={setProblem}
                 onClear={clearProblem}
+                theme={$settings.theme}
             />
+            {#if activeProblem}
+                <button class="give-up-btn" onclick={giveUp}>Give Up</button>
+            {/if}
         {/snippet}
     </Header>
+
+    {#if showCongrats}
+        <div class="congrats-overlay">
+            <div class="congrats-card">
+                <h1>🎉 Congratulations! 🎉</h1>
+                <p>You solved <strong>{activeProblem?.title}</strong></p>
+                <div class="stats">
+                    <span class="label">Time taken:</span>
+                    <span class="value"
+                        >{Math.floor($timer.elapsed / 60)
+                            .toString()
+                            .padStart(2, "0")}:{($timer.elapsed % 60)
+                            .toString()
+                            .padStart(2, "0")}</span
+                    >
+                </div>
+                <button onclick={closeCongrats}>Awesome!</button>
+            </div>
+        </div>
+    {/if}
 
     <div class="editor-section" class:hidden={!editorVisible}>
         <Monaco
@@ -464,5 +524,80 @@ Type 'run' to execute your Python code, 'help' for available commands, or 'clear
 
     .terminal-section {
         flex-shrink: 0;
+    }
+
+    .give-up-btn {
+        background: var(--term-red);
+        color: white;
+        border: none;
+        padding: 4px 12px;
+        font-family: var(--term-font);
+        cursor: pointer;
+        font-size: 0.85rem;
+    }
+
+    .give-up-btn:hover {
+        opacity: 0.8;
+    }
+
+    .congrats-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        backdrop-filter: blur(4px);
+    }
+
+    .congrats-card {
+        background: var(--term-bg);
+        border: 4px solid var(--term-green);
+        padding: 2rem;
+        text-align: center;
+        max-width: 400px;
+        box-shadow: 8px 8px 0 var(--term-border);
+    }
+
+    .congrats-card h1 {
+        color: var(--term-green);
+        margin-top: 0;
+    }
+
+    .stats {
+        margin: 1.5rem 0;
+        font-size: 1.25rem;
+    }
+
+    .stats .label {
+        color: var(--term-text);
+        margin-right: 0.5rem;
+    }
+
+    .stats .value {
+        color: var(--term-yellow);
+        font-weight: bold;
+        font-family: var(--term-font);
+    }
+
+    .congrats-card button {
+        background: var(--term-green);
+        color: var(--term-bg);
+        border: none;
+        padding: 10px 24px;
+        font-family: var(--term-font);
+        font-weight: bold;
+        cursor: pointer;
+        font-size: 1rem;
+    }
+
+    .congrats-card button:hover {
+        opacity: 0.9;
+        transform: translate(-2px, -2px);
+        box-shadow: 2px 2px 0 var(--term-border);
     }
 </style>

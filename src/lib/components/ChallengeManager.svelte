@@ -7,6 +7,7 @@
         onDeactivate: () => void;
         activeChallenge: Challenge | null;
         activeChallengeId: string | null;
+        theme?: "dark" | "light";
     }
 
     let {
@@ -14,6 +15,7 @@
         onDeactivate,
         activeChallenge,
         activeChallengeId,
+        theme = "dark",
     }: Props = $props();
 
     let isOpen = $state(false);

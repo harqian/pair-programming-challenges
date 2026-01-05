@@ -2,27 +2,24 @@
     import { onDestroy, onMount } from "svelte";
     import { getPartySocket } from "$lib/partyContext";
     import { settings } from "$lib/settings";
+    import { timer } from "$lib/timerStore";
     import Hamburger from "./Hamburger.svelte";
 
     const socket = getPartySocket();
     let copied = $state(false);
 
-    let elapsed = $state(0);
-    let timerStartedAt: number | null = $state(null);
     let interval: number | undefined = undefined;
     let open = $state(false);
 
     function updateElapsed() {
-        if (timerStartedAt !== null) {
-            elapsed = Math.floor((Date.now() - timerStartedAt) / 1000);
-        }
+        timer.updateElapsed();
     }
 
     function startTimer() {
         if (!socket) return;
         socket.send(
             JSON.stringify({
-                type: "getOrCreateTimer",
+                type: "startTimer",
                 clientTime: Date.now(),
             }),
         );
@@ -44,61 +41,20 @@
     }
 
     onMount(() => {
+        // Start interval for local display updates
+        interval = setInterval(updateElapsed, 1000);
+
         if (!socket) return;
-
-        socket.addEventListener("message", (event) => {
-            try {
-                const data = JSON.parse(event.data);
-
-                if (data.type === "timerSync") {
-                    timerStartedAt = data.startedAt;
-                    updateElapsed();
-
-                    // Start interval if not already running
-                    if (!interval) {
-                        interval = setInterval(updateElapsed, 1000);
-                    }
-                }
-
-                if (data.type === "timerStarted") {
-                    // Another client started the timer, request our sync
-                    socket.send(
-                        JSON.stringify({
-                            type: "syncMyTimer",
-                            clientTime: Date.now(),
-                        }),
-                    );
-                }
-
-                if (data.type === "timerReset") {
-                    timerStartedAt = null;
-                    elapsed = 0;
-                    if (interval) {
-                        clearInterval(interval);
-                        interval = undefined;
-                    }
-                }
-            } catch (e) {
-                // Ignore non-JSON messages
-            }
-        });
-
-        // Request timer state on connect
-        socket.addEventListener("open", () => {
-            socket.send(
-                JSON.stringify({
-                    type: "getOrCreateTimer",
-                    clientTime: Date.now(),
-                }),
-            );
-        });
+        
+        // Keep the socket for copy link or other things if needed
+        // but timer is now handled via Yjs in +page.svelte
     });
 
     onDestroy(() => {
         if (interval) clearInterval(interval);
     });
 
-    let { middle }: { middle?: import("svelte").Snippet } = $props();
+    let { middle, theme = "dark" }: { middle?: import("svelte").Snippet, theme?: "dark" | "light" } = $props();
 
     async function copyRoomLink() {
         await navigator.clipboard.writeText(window.location.href);
@@ -113,12 +69,7 @@
         {@render middle()}
     {/if}
     <div class="timer-section">
-        <span class="timer">{formatTime(elapsed)}</span>
-        {#if timerStartedAt === null}
-            <button onclick={startTimer}>Start</button>
-        {:else}
-            <button onclick={resetTimer}>Reset</button>
-        {/if}
+        <span class="timer">{formatTime($timer.elapsed)}</span>
     </div>
     <button class="copy-btn" onclick={copyRoomLink}>
         {copied ? "Copied!" : "Copy Link"}

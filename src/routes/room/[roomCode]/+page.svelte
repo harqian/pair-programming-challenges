@@ -227,7 +227,7 @@
                     yText,
                     model,
                     new Set([monacoEditor]),
-                    provider.awareness,
+                    null, // Pass null to disable y-monaco's built-in cursor handling
                 );
                 model.setEOL(monaco.editor.EndOfLineSequence.LF);
 
@@ -504,6 +504,8 @@
             bind:editor={monacoEditor}
             fontSize={$settings.fontSize}
             theme={$settings.theme}
+            awareness={terminalAwareness}
+            showCursors={$settings.showCursors}
         />
         {#if activeChallengeId === "activity-timer"}
             <TimerOverlay awareness={terminalAwareness} />
@@ -533,6 +535,17 @@ Type 'run' to execute your Python code, 'help' for available commands, or 'clear
 </div>
 
 <style>
+    /* Hide y-monaco default cursors to use monaco-collab-ext instead */
+    :global(.yRemoteSelection) {
+        background-color: transparent !important;
+    }
+    :global(.yRemoteSelectionHead) {
+        border: none !important;
+    }
+    :global(.yRemoteSelectionHead::after) {
+        display: none !important;
+    }
+
     .page-container {
         display: flex;
         flex-direction: column;

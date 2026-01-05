@@ -1,7 +1,9 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
+    import { settings } from "$lib/settings";
 
     let roomCode = $state("");
+    let name = $state($settings.userName);
 
     function generateRoomCode(): string {
         const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -13,13 +15,17 @@
     }
 
     function joinRoom() {
-        if (roomCode.trim()) {
+        if (roomCode.trim() && name.trim()) {
+            settings.setUserName(name.trim());
             goto(`/room/${roomCode.trim().toUpperCase()}`);
         }
     }
 
     function createRoom() {
-        goto(`/room/${generateRoomCode()}`);
+        if (name.trim()) {
+            settings.setUserName(name.trim());
+            goto(`/room/${generateRoomCode()}`);
+        }
     }
 
     function handleKeydown(e: KeyboardEvent) {
@@ -34,20 +40,36 @@
     <p class="subtitle">Collaborative coding with real-time sync</p>
 
     <div class="actions">
-        <div class="join-section">
+        <div class="input-group">
+            <label for="name">Your Name</label>
             <input
+                id="name"
                 type="text"
-                bind:value={roomCode}
-                onkeydown={handleKeydown}
-                placeholder="Enter room code"
-                maxlength="10"
+                bind:value={name}
+                placeholder="Enter your name"
+                maxlength="20"
+                class="name-input"
             />
-            <button onclick={joinRoom} disabled={!roomCode.trim()}>Join Room</button>
+        </div>
+
+        <div class="join-section">
+            <div class="input-group">
+                <label for="room">Room Code</label>
+                <input
+                    id="room"
+                    type="text"
+                    bind:value={roomCode}
+                    onkeydown={handleKeydown}
+                    placeholder="Enter room code"
+                    maxlength="10"
+                />
+            </div>
+            <button onclick={joinRoom} disabled={!roomCode.trim() || !name.trim()}>Join Room</button>
         </div>
 
         <div class="divider">or</div>
 
-        <button class="create-btn" onclick={createRoom}>Create New Room</button>
+        <button class="create-btn" onclick={createRoom} disabled={!name.trim()}>Create New Room</button>
     </div>
 </div>
 
@@ -65,7 +87,7 @@
 
     h1 {
         color: var(--term-green);
-        font-size: 2rem;
+        font-size: 2.5rem;
         margin: 0 0 0.5rem 0;
         text-align: center;
     }
@@ -82,7 +104,21 @@
         align-items: center;
         gap: 1.5rem;
         width: 100%;
-        max-width: 300px;
+        max-width: 320px;
+    }
+
+    .input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        width: 100%;
+    }
+
+    label {
+        color: var(--term-green);
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
     }
 
     .join-section {
@@ -97,8 +133,11 @@
         border: 2px solid var(--term-border);
         color: var(--term-text);
         font-family: var(--term-font);
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         padding: 0.75rem 1rem;
+    }
+
+    input#room {
         text-align: center;
         text-transform: uppercase;
         letter-spacing: 0.2em;
@@ -133,7 +172,7 @@
     }
 
     button:disabled {
-        opacity: 0.4;
+        opacity: 0.3;
         cursor: not-allowed;
     }
 
@@ -142,7 +181,7 @@
         color: var(--term-green);
     }
 
-    .create-btn:hover {
+    .create-btn:hover:not(:disabled) {
         background: var(--term-green);
         color: #000;
     }

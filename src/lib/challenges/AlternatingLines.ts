@@ -4,7 +4,7 @@ import * as monaco from 'monaco-editor';
 import * as Y from 'yjs';
 
 export class AlternatingLines extends Challenge {
-    private sharedState: Y.Map<any>;
+    private sharedState!: Y.Map<any>;
     private players: number[] = [];
     private decorations: string[] = [];
     private previousContent: string = '';

@@ -21,6 +21,7 @@
 		"vite": "^7.2.6"
 	},
 	"dependencies": {
+		"@convergencelabs/monaco-collab-ext": "^0.4.0",
 		"mitt": "^3.0.1",
 		"monaco-editor": "^0.55.1",
 		"partykit": "^0.0.115",

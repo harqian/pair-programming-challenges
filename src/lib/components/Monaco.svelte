@@ -33,6 +33,9 @@
 <script lang="ts">
     import type * as monaco from "monaco-editor";
     import { onMount } from "svelte";
+    import { RemoteCursorManager, RemoteSelectionManager } from "@convergencelabs/monaco-collab-ext";
+    import type { Awareness } from "y-protocols/awareness";
+    import * as Y from "yjs";
 
     let container: HTMLDivElement;
 
@@ -41,6 +44,8 @@
         editor: monaco.editor.IStandaloneCodeEditor | undefined;
         fontSize?: number;
         theme?: "dark" | "light";
+        awareness?: Awareness;
+        showCursors?: boolean;
     };
 
     let {
@@ -48,11 +53,25 @@
         editor = $bindable(undefined),
         fontSize = 14,
         theme = "dark",
+        awareness,
+        showCursors = true,
     }: Props = $props();
+
+    let cursorManager: RemoteCursorManager | undefined;
+    let selectionManager: RemoteSelectionManager | undefined;
+    const remoteCursors = new Map<number, any>();
+    const remoteSelections = new Map<number, any>();
 
     $effect(() => {
         if (editor) {
             editor.updateOptions({ fontSize });
+        }
+    });
+
+    $effect(() => {
+        // Run whenever showCursors or awareness changes
+        if (showCursors !== undefined || awareness !== undefined) {
+            updateRemoteCursors();
         }
     });
 
@@ -64,10 +83,102 @@
         }
     });
 
+    function updateRemoteCursors() {
+        if (!awareness || !cursorManager || !selectionManager || !editor) return;
+
+        const states = awareness.getStates();
+        const clientID = awareness.clientID;
+
+        // Remove cursors for clients that are no longer present
+        remoteCursors.forEach((_, id) => {
+            if (!states.has(id)) {
+                remoteCursors.get(id)?.dispose();
+                remoteCursors.delete(id);
+                remoteSelections.get(id)?.dispose();
+                remoteSelections.delete(id);
+            }
+        });
+
+        states.forEach((state, id) => {
+            if (id === clientID) return;
+
+            const user = state.user;
+            if (!user) return;
+
+            // Handle Cursor
+            let cursor = remoteCursors.get(id);
+            if (!cursor) {
+                cursor = cursorManager!.addCursor(id.toString(), user.color, user.name);
+                remoteCursors.set(id, cursor);
+            }
+
+            // Handle Selection
+            let selection = remoteSelections.get(id);
+            if (!selection) {
+                selection = selectionManager!.addSelection(id.toString(), user.color);
+                remoteSelections.set(id, selection);
+            }
+
+            if (!showCursors) {
+                cursor.hide();
+                selection.hide();
+                return;
+            }
+
+            // Update position if available
+            const model = editor!.getModel();
+            if (!model) return;
+
+            if (state.cursor) {
+                try {
+                    const pos = state.cursor;
+                    // Validate position is within model bounds
+                    const lineCount = model.getLineCount();
+                    if (pos.lineNumber <= lineCount) {
+                        const lineMaxColumn = model.getLineMaxColumn(pos.lineNumber);
+                        if (pos.column <= lineMaxColumn) {
+                            const offset = model.getOffsetAt(pos);
+                            cursor.setOffset(offset);
+                            cursor.show();
+                        } else {
+                            cursor.hide();
+                        }
+                    } else {
+                        cursor.hide();
+                    }
+                } catch (e) {
+                    cursor.hide();
+                }
+            } else {
+                cursor.hide();
+            }
+
+            if (state.selection) {
+                try {
+                    const sel = state.selection;
+                    if (sel.start && sel.end) {
+                        const startOffset = model.getOffsetAt(sel.start);
+                        const endOffset = model.getOffsetAt(sel.end);
+                        selection.setOffsets(startOffset, endOffset);
+                        selection.show();
+                    } else {
+                        selection.hide();
+                    }
+                } catch (e) {
+                    selection.hide();
+                }
+            } else {
+                selection.hide();
+            }
+        });
+    }
+
     onMount(() => {
         (async () => {
             const monaco = await import("monaco-editor");
             monacoModule = monaco;
+            
+            // ... theme definitions ...
 
             // Define terminal-matching theme
             monaco.editor.defineTheme("terminal", {
@@ -153,12 +264,52 @@
                 editor.setValue(value);
             }
 
+            editor.onDidChangeCursorSelection((e) => {
+                if (awareness) {
+                    const selection = editor!.getSelection();
+                    if (selection) {
+                        awareness.setLocalStateField("cursor", {
+                            lineNumber: selection.positionLineNumber,
+                            column: selection.positionColumn,
+                        });
+                        awareness.setLocalStateField("selection", {
+                            start: {
+                                lineNumber: selection.selectionStartLineNumber,
+                                column: selection.selectionStartColumn,
+                            },
+                            end: {
+                                lineNumber: selection.positionLineNumber,
+                                column: selection.positionColumn,
+                            },
+                        });
+                    }
+                }
+            });
+
             editor.onDidChangeModelContent(() => {
                 value = editor!.getValue();
             });
+
+            // Initialize collaborative managers
+            cursorManager = new RemoteCursorManager({ 
+                editor: editor!,
+                tooltips: true,
+                tooltipDuration: 4 // Keep label visible for 4 seconds after movement
+            });
+            selectionManager = new RemoteSelectionManager({ editor: editor! });
+
+            if (awareness) {
+                awareness.on("change", updateRemoteCursors);
+                updateRemoteCursors();
+            }
         })();
 
         return () => {
+            if (awareness) {
+                awareness.off("change", updateRemoteCursors);
+            }
+            remoteCursors.forEach(c => c.dispose());
+            remoteSelections.forEach(s => s.dispose());
             editor?.dispose();
         };
     });
@@ -170,5 +321,37 @@
     .monaco-editor {
         width: 100%;
         height: 100%;
+    }
+
+    /* Monaco Collab Ext Styles */
+    :global(.monaco-remote-cursor) {
+        width: 2px !important;
+        z-index: 100 !important;
+    }
+
+    :global(.monaco-remote-selection) {
+        opacity: 0.2;
+    }
+
+    :global(.monaco-remote-cursor-tooltip) {
+        font-family: var(--term-font) !important;
+        font-size: 10px !important;
+        padding: 1px 4px !important;
+        position: absolute !important;
+        white-space: nowrap !important;
+        color: #000 !important; /* Black text on the colored background */
+        font-weight: bold !important;
+        pointer-events: none !important;
+        z-index: 101 !important;
+        border-radius: 0 !important;
+        line-height: normal !important;
+        /* Tooltip duration and fade are handled by the library's JS/CSS, 
+           but we ensure it looks like a tag */
+        box-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+    }
+
+    /* Hide the default small triangle/flag if it exists to keep it clean */
+    :global(.monaco-remote-cursor:before) {
+        display: none !important;
     }
 </style>

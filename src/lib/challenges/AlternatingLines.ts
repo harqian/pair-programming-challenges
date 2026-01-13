@@ -1,6 +1,7 @@
 // lib/challenges/AlternatingLines.ts
 import { Challenge, type ChallengeContext } from './base';
-import * as monaco from 'monaco-editor';
+import type * as monaco from 'monaco-editor';
+import { Range } from 'monaco-editor';
 import * as Y from 'yjs';
 
 export class AlternatingLines extends Challenge {
@@ -193,7 +194,7 @@ export class AlternatingLines extends Challenge {
             // Show all lines as locked for non-hosts
             if (totalLines > 0) {
                 newDecorations.push({
-                    range: new monaco.Range(1, 1, totalLines, model.getLineMaxColumn(totalLines)),
+                    range: new Range(1, 1, totalLines, model.getLineMaxColumn(totalLines)),
                     options: {
                         isWholeLine: true,
                         className: 'relay-locked-line',
@@ -207,7 +208,7 @@ export class AlternatingLines extends Challenge {
             for (let i = 1; i <= totalLines; i++) {
                 if (i === this.currentLineNumber) {
                     newDecorations.push({
-                        range: new monaco.Range(i, 1, i, model.getLineMaxColumn(i)),
+                        range: new Range(i, 1, i, model.getLineMaxColumn(i)),
                         options: {
                             isWholeLine: true,
                             className: 'relay-active-line',
@@ -216,7 +217,7 @@ export class AlternatingLines extends Challenge {
                     });
                 } else {
                     newDecorations.push({
-                        range: new monaco.Range(i, 1, i, model.getLineMaxColumn(i)),
+                        range: new Range(i, 1, i, model.getLineMaxColumn(i)),
                         options: {
                             isWholeLine: true,
                             className: 'relay-locked-line'

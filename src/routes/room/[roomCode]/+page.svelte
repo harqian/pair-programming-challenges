@@ -12,7 +12,7 @@
     import { onMount } from "svelte";
     import { MonacoBinding } from "y-monaco";
     import { getYjsDoc, getYjsProvider } from "$lib/partyContext";
-    import * as monaco from "monaco-editor";
+    import type * as monaco from "monaco-editor";
     import type * as Y from "yjs";
     import ChallengeManager from "$lib/components/ChallengeManager.svelte";
     import ProblemSelector from "$lib/components/ProblemSelector.svelte";
@@ -260,6 +260,26 @@
     }
 
     onMount(() => {
+        function handleKeydown(e: KeyboardEvent) {
+            if (!get(settings).shortcuts) return;
+            if (e.metaKey || e.ctrlKey) {
+                if (e.key === "`") {
+                    e.preventDefault();
+                    terminalRef?.focus();
+                } else if (e.key === "1") {
+                    e.preventDefault();
+                    monacoEditor?.focus();
+                }
+            }
+        }
+
+        document.addEventListener("keydown", handleKeydown);
+
+        return () => document.removeEventListener("keydown", handleKeydown);
+    });
+
+    onMount(async () => {
+        const monaco = await import("monaco-editor");
         const yText = yDoc.getText("shared");
         const challengeState = yDoc.getMap("challenge");
         const problemState = yDoc.getMap("problem");
@@ -273,20 +293,6 @@
             startTutorial();
             localStorage.setItem("has-seen-tutorial", "true");
         }
-
-        function handleKeydown(e: KeyboardEvent) {
-            if (!get(settings).shortcuts) return;
-            if (e.metaKey || e.ctrlKey) {
-                if (e.key === "`") {
-                    e.preventDefault();
-                    terminalRef?.focus();
-                } else if (e.key === "1") {
-                    e.preventDefault();
-                    monacoEditor?.focus();
-                }
-            }
-        }
-        document.addEventListener("keydown", handleKeydown);
 
         const waitForEditor = setInterval(() => {
             const model = monacoEditor?.getModel();
@@ -359,8 +365,6 @@
                 activeProblem = null;
             }
         });
-
-        return () => document.removeEventListener("keydown", handleKeydown);
     });
 
     async function handleCommand(command: string, context: CommandContext) {
@@ -487,7 +491,9 @@
 
     function showHelp(context: CommandContext) {
         context.info("Available commands:");
-        context.info("  run             - Execute the Python code in the editor");
+        context.info(
+            "  run             - Execute the Python code in the editor",
+        );
         context.info("  ^C (control C)  - Stop Python code execution");
         context.info("  help            - Show this help message");
         context.info("  clear           - Clear the terminal");
@@ -495,23 +501,14 @@
     }
 </script>
 
-    <div
-
-        class="page-container"
-
-        bind:this={containerRef}
-
-        class:resizing={isResizing}
-
-    >
-
-        <Header theme={$settings.theme} onShowTutorial={startTutorial}>
-
-            {#snippet middle()}
-
-                <div id="challenge-manager">
-
-
+<div
+    class="page-container"
+    bind:this={containerRef}
+    class:resizing={isResizing}
+>
+    <Header theme={$settings.theme} onShowTutorial={startTutorial}>
+        {#snippet middle()}
+            <div id="challenge-manager">
                 <ChallengeManager
                     {activeChallenge}
                     {activeChallengeId}
@@ -588,7 +585,11 @@
         </div>
     {/if}
 
-    <div id="editor-section" class="editor-section" class:hidden={!editorVisible}>
+    <div
+        id="editor-section"
+        class="editor-section"
+        class:hidden={!editorVisible}
+    >
         <Monaco
             bind:value={monacoValue}
             bind:editor={monacoEditor}
@@ -610,7 +611,11 @@
         tabindex="-1"
     ></div>
 
-    <div id="terminal-section" class="terminal-section" style="height: {terminalHeight}px">
+    <div
+        id="terminal-section"
+        class="terminal-section"
+        style="height: {terminalHeight}px"
+    >
         <Terminal
             bind:this={terminalRef}
             onCommand={handleCommand}

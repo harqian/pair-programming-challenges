@@ -1,6 +1,7 @@
 import { walkAst } from '$lib/engine';
 import { Challenge, type ChallengeContext } from './base';
-import * as monaco from 'monaco-editor';
+import type * as monaco from 'monaco-editor';
+import { Range } from 'monaco-editor';
 
 interface ViolationRule {
     nodeTypes: string[];
@@ -103,7 +104,7 @@ export class NoForLoops extends Challenge {
 
         // Full range highlighting
         decorations.push({
-            range: new monaco.Range(
+            range: new Range(
                 pos.start.line,
                 pos.start.column,
                 pos.end?.line ?? pos.start.line,
@@ -118,7 +119,7 @@ export class NoForLoops extends Challenge {
 
         // Inline message on first line
         decorations.push({
-            range: new monaco.Range(
+            range: new Range(
                 pos.start.line,
                 pos.start.column,
                 pos.start.line,

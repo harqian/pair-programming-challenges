@@ -115,7 +115,7 @@
                 {#if $settings.shortcuts}
                     <div class="setting-row shortcuts">
                         <div class="shortcut-list">
-                            <div><kbd>⌘`</kbd> Terminal</div>
+                            <div><kbd>^`</kbd> Terminal</div>
                             <div><kbd>⌘1</kbd> Editor</div>
                         </div>
                     </div>

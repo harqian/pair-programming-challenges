@@ -46,8 +46,17 @@
         </div>
     {/if}
 
-    <h1>Pair Programming Challenge</h1>
+    <h1>debuff.dev</h1>
     <p class="subtitle">Collaborative coding with real-time sync</p>
+
+    <div class="description">
+        <p>Practice coding with friends in real-time. Share a room, pick a challenge, and solve problems together.</p>
+        <ul>
+            <li>Live collaborative editor - see each other's cursors</li>
+            <li>Built-in Python interpreter</li>
+            <li>Fun challenges like blind coding mode</li>
+        </ul>
+    </div>
 
     <div class="actions" class:loading>
         <div class="input-group">
@@ -106,8 +115,31 @@
 
     .subtitle {
         color: var(--term-text);
-        margin: 0 0 3rem 0;
+        margin: 0 0 1.5rem 0;
         opacity: 0.7;
+    }
+
+    .description {
+        max-width: 400px;
+        margin-bottom: 2rem;
+        color: var(--term-text);
+        opacity: 0.8;
+        text-align: left;
+    }
+
+    .description p {
+        margin: 0 0 0.75rem 0;
+        line-height: 1.4;
+    }
+
+    .description ul {
+        margin: 0;
+        padding-left: 1.25rem;
+    }
+
+    .description li {
+        margin: 0.25rem 0;
+        color: var(--term-green);
     }
 
     .actions {

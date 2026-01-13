@@ -4,6 +4,7 @@
 
     let roomCode = $state("");
     let name = $state($settings.userName);
+    let loading = $state(false);
 
     function generateRoomCode(): string {
         const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -14,17 +15,19 @@
         return code;
     }
 
-    function joinRoom() {
+    async function joinRoom() {
         if (roomCode.trim() && name.trim()) {
+            loading = true;
             settings.setUserName(name.trim());
-            goto(`/room/${roomCode.trim().toUpperCase()}`);
+            await goto(`/room/${roomCode.trim().toUpperCase()}`);
         }
     }
 
-    function createRoom() {
+    async function createRoom() {
         if (name.trim()) {
+            loading = true;
             settings.setUserName(name.trim());
-            goto(`/room/${generateRoomCode()}`);
+            await goto(`/room/${generateRoomCode()}`);
         }
     }
 
@@ -36,10 +39,17 @@
 </script>
 
 <div class="landing">
+    {#if loading}
+        <div class="loading-overlay">
+            <div class="spinner"></div>
+            <p>Entering terminal...</p>
+        </div>
+    {/if}
+
     <h1>Pair Programming Challenge</h1>
     <p class="subtitle">Collaborative coding with real-time sync</p>
 
-    <div class="actions">
+    <div class="actions" class:loading>
         <div class="input-group">
             <label for="name">Your Name</label>
             <input
@@ -49,6 +59,7 @@
                 placeholder="Enter your name"
                 maxlength="20"
                 class="name-input"
+                disabled={loading}
             />
         </div>
 
@@ -62,14 +73,15 @@
                     onkeydown={handleKeydown}
                     placeholder="Enter room code"
                     maxlength="10"
+                    disabled={loading}
                 />
             </div>
-            <button onclick={joinRoom} disabled={!roomCode.trim() || !name.trim()}>Join Room</button>
+            <button onclick={joinRoom} disabled={!roomCode.trim() || !name.trim() || loading}>Join Room</button>
         </div>
 
         <div class="divider">or</div>
 
-        <button class="create-btn" onclick={createRoom} disabled={!name.trim()}>Create New Room</button>
+        <button class="create-btn" onclick={createRoom} disabled={!name.trim() || loading}>Create New Room</button>
     </div>
 </div>
 
@@ -190,5 +202,47 @@
         color: var(--term-text);
         opacity: 0.5;
         font-size: 0.85rem;
+    }
+
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        gap: 1rem;
+        backdrop-filter: blur(4px);
+    }
+
+    .loading-overlay p {
+        color: var(--term-green);
+        font-family: var(--term-font);
+        margin: 0;
+        letter-spacing: 0.05em;
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--term-border);
+        border-top: 3px solid var(--term-green);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .actions.loading {
+        opacity: 0.5;
+        pointer-events: none;
     }
 </style>

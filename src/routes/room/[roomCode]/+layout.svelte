@@ -32,12 +32,52 @@
     setYjsDoc(yDoc);
     setYjsProvider(provider);
 
+    let pendingIdentifyName: string | null = null;
+
+    function sendIdentify(name: string) {
+        const payload = JSON.stringify({
+            type: "identify",
+            name,
+        });
+
+        if (provider.wsconnected && provider.ws) {
+            console.log("[client] sending identify", { name, room: roomCode });
+            provider.ws.send(payload);
+            pendingIdentifyName = null;
+            return;
+        }
+
+        console.log("[client] queue identify", { name, room: roomCode });
+        pendingIdentifyName = name;
+    }
+
+    function getDisplayName() {
+        return $settings.userName || `Guest ${Math.floor(Math.random() * 1000)}`;
+    }
+
     onMount(() => {
         provider.connect();
+
+        const handleStatus = ({ status }: { status: string }) => {
+            console.log("[client] provider status", { status, room: roomCode });
+            if (status === "connected" && pendingIdentifyName) {
+                sendIdentify(pendingIdentifyName);
+            }
+        };
+
+        provider.on("status", handleStatus);
+
+        const initialName = getDisplayName();
+        provider.awareness.setLocalStateField("user", {
+            name: initialName,
+            color: userColor,
+        });
+        sendIdentify(initialName);
+        return () => provider.off("status", handleStatus);
     });
 
     $effect(() => {
-        const name = $settings.userName || `Guest ${Math.floor(Math.random() * 1000)}`;
+        const name = getDisplayName();
         provider.awareness.setLocalStateField("user", {
             name,
             color: userColor,
@@ -45,10 +85,7 @@
 
         // Identify to the server for system messages
         if (provider.shouldConnect) {
-            provider.ws?.send(JSON.stringify({
-                type: "identify",
-                name
-            }));
+            sendIdentify(name);
         }
     });
 

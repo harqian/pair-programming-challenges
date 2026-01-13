@@ -10,17 +10,22 @@ export default class Server implements Party.Server {
     private readonly yjsOptions: YPartyKitOptions = {
         persist: true,
     };
-
     // Track names by connection ID
     connectionNames = new Map<string, string>();
 
     async onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
+        console.log("[party] onConnect", { room: this.room.id, connId: conn.id });
         await onConnect(conn, this.room, this.yjsOptions);
         await this.ensureWelcomeMessage();
     }
 
     onMessage(message: string, sender: Party.Connection) {
         try {
+            console.log("[party] onMessage raw", {
+                room: this.room.id,
+                connId: sender.id,
+                message,
+            });
             const data = JSON.parse(message);
             if (data.type === "identify") {
                 const oldName = this.connectionNames.get(sender.id);
@@ -29,13 +34,22 @@ export default class Server implements Party.Server {
 
                 // If this is the first time they identify, log the join
                 if (!oldName) {
+                    console.log("[party] identify", {
+                        room: this.room.id,
+                        connId: sender.id,
+                        name: newName,
+                    });
                     this.logToTerminal(`welcome ${newName}`, "success");
                 } else if (oldName !== newName) {
                     // Optional: log name change
                 }
             }
         } catch (e) {
-            // Not our message or malformed
+            console.warn("[party] onMessage parse failed", {
+                room: this.room.id,
+                connId: sender.id,
+                error: String(e),
+            });
         }
     }
 

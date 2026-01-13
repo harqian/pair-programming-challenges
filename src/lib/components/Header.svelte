@@ -58,6 +58,12 @@
         connectedUsers = users;
     }
 
+    function handleKeydown(e: KeyboardEvent) {
+        if (e.key === "Escape" && open) {
+            open = false;
+        }
+    }
+
     onMount(() => {
         interval = setInterval(updateElapsed, 1000);
 
@@ -65,6 +71,8 @@
             awareness.on("change", updateUsers);
             updateUsers();
         }
+
+        document.addEventListener("keydown", handleKeydown);
     });
 
     onDestroy(() => {
@@ -72,6 +80,7 @@
         if (awareness) {
             awareness.off("change", updateUsers);
         }
+        document.removeEventListener("keydown", handleKeydown);
     });
 
     let { middle, theme = "dark" }: { middle?: import("svelte").Snippet, theme?: "dark" | "light" } = $props();

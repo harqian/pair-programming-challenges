@@ -945,7 +945,7 @@
         color: var(--term-text);
     }
     .log-line.info .log-marker {
-        color: var(--term-border);
+        color: var(--term-cyan);
     }
 
     .log-line.success {

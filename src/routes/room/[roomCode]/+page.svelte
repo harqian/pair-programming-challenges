@@ -487,9 +487,10 @@
 
     function showHelp(context: CommandContext) {
         context.info("Available commands:");
-        context.info("  run   - Execute the Python code in the editor");
-        context.info("  help  - Show this help message");
-        context.info("  clear - Clear the terminal");
+        context.info("  run             - Execute the Python code in the editor");
+        context.info("  ^C (control C)  - Stop Python code execution");
+        context.info("  help            - Show this help message");
+        context.info("  clear           - Clear the terminal");
         context.complete();
     }
 </script>

@@ -1,23 +1,22 @@
 import type * as Party from "partykit/server";
-import { onConnect } from "y-partykit";
+import { onConnect, unstable_getYDoc, type YPartyKitOptions } from "y-partykit";
 import * as Y from "yjs";
+import { randomUUID } from "crypto";
 
 export default class Server implements Party.Server {
     constructor(readonly room: Party.Room) { }
+
+    private yDoc: Y.Doc | undefined;
+    private readonly yjsOptions: YPartyKitOptions = {
+        persist: true,
+    };
 
     // Track names by connection ID
     connectionNames = new Map<string, string>();
 
     async onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
-        return onConnect(conn, this.room, {
-            persist: true,
-            callback: {
-                handler: async (doc) => {
-                    // We can observe the doc for name updates if needed,
-                    // but for now we'll handle join/leave via connection hooks.
-                }
-            }
-        });
+        await onConnect(conn, this.room, this.yjsOptions);
+        await this.ensureWelcomeMessage();
     }
 
     onMessage(message: string, sender: Party.Connection) {
@@ -30,7 +29,7 @@ export default class Server implements Party.Server {
 
                 // If this is the first time they identify, log the join
                 if (!oldName) {
-                    this.logToTerminal(`=${newName}= joined the room!`, "success");
+                    this.logToTerminal(`welcome ${newName}`, "success");
                 } else if (oldName !== newName) {
                     // Optional: log name change
                 }
@@ -49,21 +48,67 @@ export default class Server implements Party.Server {
     }
 
     private async logToTerminal(text: string, type: "success" | "warning" | "info") {
-        // We'll use a special message type that the client-side Terminal 
-        // will listen for to update the shared Yjs array once.
-        // Actually, it's better to just broadcast a signal and let the clients 
-        // handle it, but to avoid duplicates, the server should ideally 
-        // be the one to modify the Yjs doc.
-        
-        // Since y-partykit manages the doc, we can broadcast a custom event
-        // that the FIRST connected client will use to update the Yjs array.
-        // Or better, we just broadcast it to all clients to show locally.
-        
-        this.room.broadcast(JSON.stringify({
-            type: "system_message",
-            text,
-            messageType: type,
-            timestamp: Date.now()
-        }));
+        const doc = await this.getDoc();
+        const terminalSessions = doc.getArray("terminal-sessions");
+        terminalSessions.push([
+            {
+                id: randomUUID(),
+                command: "system",
+                timestamp: Date.now(),
+                logs: [
+                    {
+                        text,
+                        type,
+                        timestamp: Date.now(),
+                    },
+                ],
+                status: "completed",
+                ownerId: -1,
+            },
+        ]);
+    }
+
+    private async ensureWelcomeMessage() {
+        const doc = await this.getDoc();
+        const meta = doc.getMap("terminal-meta");
+        const terminalSessions = doc.getArray("terminal-sessions");
+        if (meta.get("createdAt") || terminalSessions.length > 0) {
+            if (!meta.get("createdAt")) {
+                meta.set("createdAt", Date.now());
+            }
+            return;
+        }
+
+        const roomCode = this.room.id.replace(/^game-/, "");
+        const welcomeMessage =
+            `Welcome to room '${roomCode}'!\n\n` +
+            "Type 'run' to execute your Python code, control C (^C) to stop execution, " +
+            "'help' for available commands, or 'clear' to clear the terminal.";
+
+        terminalSessions.push([
+            {
+                id: randomUUID(),
+                command: "system",
+                timestamp: Date.now(),
+                logs: [
+                    {
+                        text: welcomeMessage,
+                        type: "info",
+                        timestamp: Date.now(),
+                    },
+                ],
+                status: "completed",
+                ownerId: -1,
+            },
+        ]);
+
+        meta.set("createdAt", Date.now());
+    }
+
+    private async getDoc() {
+        if (!this.yDoc) {
+            this.yDoc = await unstable_getYDoc(this.room, this.yjsOptions);
+        }
+        return this.yDoc;
     }
 }

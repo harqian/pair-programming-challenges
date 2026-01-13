@@ -304,26 +304,6 @@
             // Initialize from yArray
             sessions = newYArray.toArray();
 
-            // Add welcome message only if array is empty (first client to join)
-            if (newYArray.length === 0 && welcomeMessage) {
-                newYArray.push([
-                    {
-                        id: crypto.randomUUID(),
-                        command: "system",
-                        timestamp: Date.now(),
-                        logs: [
-                            {
-                                text: welcomeMessage,
-                                type: "info",
-                                timestamp: Date.now(),
-                            },
-                        ],
-                        status: "completed",
-                        ownerId: -1,
-                    },
-                ]);
-            }
-
             // Listen to yArray changes
             newYArray.observe(syncFromYArray);
 

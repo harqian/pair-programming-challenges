@@ -99,13 +99,27 @@
         setTimeout(() => (copied = false), 2000);
     }
 
-    function getContrastColor(hex: string): string {
-        const c = hex.replace('#', '');
-        const r = parseInt(c.slice(0, 2), 16);
-        const g = parseInt(c.slice(2, 4), 16);
-        const b = parseInt(c.slice(4, 6), 16);
+    function getContrastColor(color: string): string {
+        if (!color || typeof color !== 'string') return '#fff';
+        let r, g, b;
+        if (color.startsWith('#')) {
+            const c = color.replace('#', '');
+            r = parseInt(c.slice(0, 2), 16);
+            g = parseInt(c.slice(2, 4), 16);
+            b = parseInt(c.slice(4, 6), 16);
+        } else {
+            const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+            if (match) {
+                r = parseInt(match[1]);
+                g = parseInt(match[2]);
+                b = parseInt(match[3]);
+            } else {
+                return '#fff';
+            }
+        }
         const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-        return luminance > 0.5 ? '#000' : '#fff';
+        const result = luminance > 0.5 ? '#000000' : '#ffffff';
+        return result;
     }
 </script>
 
@@ -116,7 +130,7 @@
     <h2>debuff.dev</h2>
     <div class="connected-users">
         {#each connectedUsers as user (user.clientId)}
-            <span class="user-badge" style="background-color: {user.color}; color: {getContrastColor(user.color)};">{user.name}</span>
+            <span class="user-badge" style="background-color: {user.color}; color: {getContrastColor(user.color)} !important;">{user.name}</span>
         {/each}
     </div>
     {#if middle}

@@ -34,22 +34,19 @@
     const remoteCursors = new Map<number, any>();
     const remoteSelections = new Map<number, any>();
 
-    function getContrastColor(hex: string): string {
-        const c = hex.replace('#', '');
-        const r = parseInt(c.slice(0, 2), 16);
-        const g = parseInt(c.slice(2, 4), 16);
-        const b = parseInt(c.slice(4, 6), 16);
-        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-        return luminance > 0.5 ? '#000' : '#fff';
-    }
-
     function updateTooltipContrast(el: Element) {
-        const bg = (el as HTMLElement).style.backgroundColor;
-        if (!bg) return;
-        const match = bg.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+        const style = window.getComputedStyle(el);
+        const bg = style.backgroundColor;
+        if (!bg || bg === 'transparent') return;
+        
+        const match = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/);
         if (match) {
-            const hex = '#' + [match[1], match[2], match[3]].map(x => parseInt(x).toString(16).padStart(2, '0')).join('');
-            (el as HTMLElement).style.color = getContrastColor(hex);
+            const r = parseInt(match[1]);
+            const g = parseInt(match[2]);
+            const b = parseInt(match[3]);
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            const color = luminance > 0.5 ? '#000000' : '#ffffff';
+            (el as HTMLElement).style.setProperty('color', color, 'important');
         }
     }
 
@@ -174,30 +171,32 @@
                 { default: htmlWorker },
                 { default: tsWorker }
             ] = await Promise.all([
-                import("monaco-editor/esm/vs/editor/editor.worker?worker"),
-                import("monaco-editor/esm/vs/language/json/json.worker?worker"),
-                import("monaco-editor/esm/vs/language/css/css.worker?worker"),
-                import("monaco-editor/esm/vs/language/html/html.worker?worker"),
-                import("monaco-editor/esm/vs/language/typescript/ts.worker?worker")
+                import("monaco-editor/esm/vs/editor/editor.worker.js?worker"),
+                import("monaco-editor/esm/vs/language/json/json.worker.js?worker"),
+                import("monaco-editor/esm/vs/language/css/css.worker.js?worker"),
+                import("monaco-editor/esm/vs/language/html/html.worker.js?worker"),
+                import("monaco-editor/esm/vs/language/typescript/ts.worker.js?worker")
             ]);
 
-            self.MonacoEnvironment = {
-                getWorker: function (_moduleId: any, label: string) {
-                    if (label === "json") {
-                        return new jsonWorker();
-                    }
-                    if (label === "css" || label === "scss" || label === "less") {
-                        return new cssWorker();
-                    }
-                    if (label === "html" || label === "handlebars" || label === "razor") {
-                        return new htmlWorker();
-                    }
-                    if (label === "typescript" || label === "javascript") {
-                        return new tsWorker();
-                    }
-                    return new editorWorker();
-                },
-            };
+            if (typeof window !== 'undefined') {
+                window.MonacoEnvironment = {
+                    getWorker: function (_moduleId: any, label: string) {
+                        if (label === "json") {
+                            return new jsonWorker();
+                        }
+                        if (label === "css" || label === "scss" || label === "less") {
+                            return new cssWorker();
+                        }
+                        if (label === "html" || label === "handlebars" || label === "razor") {
+                            return new htmlWorker();
+                        }
+                        if (label === "typescript" || label === "javascript") {
+                            return new tsWorker();
+                        }
+                        return new editorWorker();
+                    },
+                };
+            }
 
             const monaco = await import("monaco-editor");
             monacoModule = monaco;

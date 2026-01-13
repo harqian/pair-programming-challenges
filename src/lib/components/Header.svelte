@@ -81,6 +81,15 @@
         copied = true;
         setTimeout(() => (copied = false), 2000);
     }
+
+    function getContrastColor(hex: string): string {
+        const c = hex.replace('#', '');
+        const r = parseInt(c.slice(0, 2), 16);
+        const g = parseInt(c.slice(2, 4), 16);
+        const b = parseInt(c.slice(4, 6), 16);
+        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        return luminance > 0.5 ? '#000' : '#fff';
+    }
 </script>
 
 <header>
@@ -90,7 +99,7 @@
     <h2>debuff.dev</h2>
     <div class="connected-users">
         {#each connectedUsers as user (user.clientId)}
-            <span class="user-badge" style="background-color: {user.color};">{user.name}</span>
+            <span class="user-badge" style="background-color: {user.color}; color: {getContrastColor(user.color)};">{user.name}</span>
         {/each}
     </div>
     {#if middle}
@@ -197,7 +206,6 @@
         padding: 2px 8px;
         font-size: 0.75rem;
         font-weight: bold;
-        color: #000;
         white-space: nowrap;
     }
 

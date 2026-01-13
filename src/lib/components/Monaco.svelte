@@ -62,6 +62,25 @@
     const remoteCursors = new Map<number, any>();
     const remoteSelections = new Map<number, any>();
 
+    function getContrastColor(hex: string): string {
+        const c = hex.replace('#', '');
+        const r = parseInt(c.slice(0, 2), 16);
+        const g = parseInt(c.slice(2, 4), 16);
+        const b = parseInt(c.slice(4, 6), 16);
+        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        return luminance > 0.5 ? '#000' : '#fff';
+    }
+
+    function updateTooltipContrast(el: Element) {
+        const bg = (el as HTMLElement).style.backgroundColor;
+        if (!bg) return;
+        const match = bg.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+        if (match) {
+            const hex = '#' + [match[1], match[2], match[3]].map(x => parseInt(x).toString(16).padStart(2, '0')).join('');
+            (el as HTMLElement).style.color = getContrastColor(hex);
+        }
+    }
+
     $effect(() => {
         if (editor) {
             editor.updateOptions({ fontSize });
@@ -302,6 +321,25 @@
                 awareness.on("change", updateRemoteCursors);
                 updateRemoteCursors();
             }
+
+            // Watch for tooltip elements and update their text color for contrast
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node instanceof Element) {
+                            if (node.classList.contains('monaco-remote-cursor-tooltip')) {
+                                updateTooltipContrast(node);
+                            }
+                            node.querySelectorAll('.monaco-remote-cursor-tooltip').forEach(updateTooltipContrast);
+                        }
+                    });
+                });
+            });
+            observer.observe(container, { childList: true, subtree: true });
+
+            return () => {
+                observer.disconnect();
+            };
         })();
 
         return () => {
@@ -339,14 +377,11 @@
         padding: 1px 4px !important;
         position: absolute !important;
         white-space: nowrap !important;
-        color: #000 !important; /* Black text on the colored background */
         font-weight: bold !important;
         pointer-events: none !important;
         z-index: 101 !important;
         border-radius: 0 !important;
         line-height: normal !important;
-        /* Tooltip duration and fade are handled by the library's JS/CSS, 
-           but we ensure it looks like a tag */
         box-shadow: 2px 2px 0 rgba(0,0,0,0.5);
     }
 

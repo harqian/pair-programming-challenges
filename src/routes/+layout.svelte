@@ -114,4 +114,53 @@
 		margin-top: 6px;
 		opacity: 0.5;
 	}
+
+	/* Driver.js Customization */
+	:global(.driver-popover.driverjs-theme) {
+		background-color: var(--term-bg) !important;
+		color: var(--term-text) !important;
+		border: 2px solid var(--term-border) !important;
+		border-radius: 0 !important;
+		font-family: var(--term-font) !important;
+		box-shadow: 4px 4px 0 var(--term-border) !important;
+	}
+
+	:global(.driver-popover.driverjs-theme .driver-popover-title) {
+		font-family: var(--term-font) !important;
+		color: var(--term-green) !important;
+		font-size: 1.1rem !important;
+	}
+
+	:global(.driver-popover.driverjs-theme .driver-popover-description) {
+		font-family: var(--term-font) !important;
+		color: var(--term-text) !important;
+		line-height: 1.4 !important;
+	}
+
+	:global(.driver-popover.driverjs-theme .driver-popover-arrow) {
+		display: none !important;
+	}
+
+	:global(.driver-popover.driverjs-theme .driver-popover-close-btn) {
+		color: var(--term-red) !important;
+	}
+
+	:global(.driver-popover.driverjs-theme .driver-popover-next-btn),
+	:global(.driver-popover.driverjs-theme .driver-popover-prev-btn) {
+		background-color: var(--term-border) !important;
+		color: var(--term-text) !important;
+		border-radius: 0 !important;
+		text-shadow: none !important;
+		border: 1px solid var(--term-border) !important;
+	}
+
+	:global(.driver-popover.driverjs-theme .driver-popover-next-btn:hover),
+	:global(.driver-popover.driverjs-theme .driver-popover-prev-btn:hover) {
+		background-color: var(--term-text) !important;
+		color: var(--term-bg) !important;
+	}
+
+	:global(.driver-popover.driverjs-theme .driver-popover-progress-text) {
+		color: var(--term-border) !important;
+	}
 </style>

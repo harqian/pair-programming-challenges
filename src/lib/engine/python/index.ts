@@ -6,11 +6,12 @@ import type { PyProxy } from "pyodide/ffi";
 
 export class PythonEngine implements Engine<PythonEngineResult, any> {
     static async new(): Promise<PythonEngine> {
-        const pyodide = await loadPyodide({
-            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.29.0/full/",
-        });
+        try {
+            const pyodide = await loadPyodide({
+                indexURL: "https://cdn.jsdelivr.net/pyodide/v0.29.0/full/",
+            });
 
-        pyodide.runPython(`
+            pyodide.runPython(`
 import ast
 import json
 
@@ -40,7 +41,11 @@ def parse_to_json(code):
     return json.dumps(ast_to_dict(tree))
 `)
 
-        return new PythonEngine(pyodide);
+            return new PythonEngine(pyodide);
+        } catch (error) {
+            console.error("Failed to load Pyodide (static new):", error);
+            throw error;
+        }
     }
 
     private constructor(private pyodide: PyodideAPI) {
@@ -74,22 +79,27 @@ export class PythonEngineResult implements EngineResult {
     static async run(code: string, options?: { globals?: (pyodide: PyodideAPI) => PyProxy; locals?: (pyodide: PyodideAPI) => PyProxy; filename?: string; }): Promise<PythonEngineResult> {
         const result = new PythonEngineResult();
 
-        const pyodide = await loadPyodide({
-            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.29.0/full/",
-            stdout: (msg) => result.emitter.emit('stdout', msg),
-            stderr: (msg) => result.emitter.emit('stderr', msg),
-        });
+        try {
+            const pyodide = await loadPyodide({
+                indexURL: "https://cdn.jsdelivr.net/pyodide/v0.29.0/full/",
+                stdout: (msg) => result.emitter.emit('stdout', msg),
+                stderr: (msg) => result.emitter.emit('stderr', msg),
+            });
 
-        pyodide.setInterruptBuffer(result.interruptBuffer);
+            pyodide.setInterruptBuffer(result.interruptBuffer);
 
-        const runOptions: any = {};
-        if (options?.globals) runOptions.globals = options.globals(pyodide);
-        if (options?.locals) runOptions.locals = options.locals(pyodide);
-        if (options?.filename) runOptions.filename = options.filename;
+            const runOptions: any = {};
+            if (options?.globals) runOptions.globals = options.globals(pyodide);
+            if (options?.locals) runOptions.locals = options.locals(pyodide);
+            if (options?.filename) runOptions.filename = options.filename;
 
-        pyodide.runPythonAsync(code, runOptions)
-            .then((finalValue) => result.emitter.emit('finished', { ok: true, value: finalValue }))
-            .catch((error) => result.emitter.emit('finished', { ok: false, error: error.message }));
+            pyodide.runPythonAsync(code, runOptions)
+                .then((finalValue) => result.emitter.emit('finished', { ok: true, value: finalValue }))
+                .catch((error) => result.emitter.emit('finished', { ok: false, error: error.message }));
+        } catch (error) {
+            console.error("Failed to load Pyodide:", error);
+            result.emitter.emit('finished', { ok: false, error: "Failed to initialize Python engine" });
+        }
 
         return result;
     }

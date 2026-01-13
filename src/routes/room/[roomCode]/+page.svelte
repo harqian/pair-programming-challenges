@@ -29,6 +29,8 @@
 
     import { timer } from "$lib/timerStore";
     import { getPartySocket } from "$lib/partyContext";
+    import { driver } from "driver.js";
+    import "driver.js/dist/driver.css";
 
     const socket = getPartySocket();
 
@@ -195,6 +197,68 @@
         settings.setTerminalHeight(terminalHeight);
     }
 
+    function startTutorial() {
+        const d = driver({
+            showProgress: true,
+            popoverClass: "driverjs-theme",
+            overlayClickBehavior: () => {},
+            steps: [
+                {
+                    element: "#problem-selector",
+                    popover: {
+                        title: "Select a Problem",
+                        description:
+                            "Choose a Python problem to solve with your partner.",
+                        side: "bottom",
+                        align: "start",
+                    },
+                },
+                {
+                    element: "#challenge-manager",
+                    popover: {
+                        title: "Add a Challenge",
+                        description:
+                            "Want to make it harder? Add a challenge like Blind Coding or No For Loops!",
+                        side: "bottom",
+                        align: "start",
+                    },
+                },
+                {
+                    element: "#editor-section",
+                    popover: {
+                        title: "The Editor",
+                        description:
+                            "Write your Python code here. Everything is synced in real-time!",
+                        side: "bottom",
+                        align: "start",
+                    },
+                },
+                {
+                    element: "#terminal-section",
+                    popover: {
+                        title: "The Terminal",
+                        description:
+                            "Type 'run' to execute your code and see the results.",
+                        side: "top",
+                        align: "start",
+                    },
+                },
+                {
+                    element: "#settings-menu",
+                    popover: {
+                        title: "Settings",
+                        description:
+                            "Customize your experience, change themes, or font size here.",
+                        side: "bottom",
+                        align: "end",
+                    },
+                },
+            ],
+        });
+
+        d.drive();
+    }
+
     onMount(() => {
         const yText = yDoc.getText("shared");
         const challengeState = yDoc.getMap("challenge");
@@ -203,6 +267,12 @@
         const failureState = yDoc.getMap("failure");
 
         timer.bindToYMap(timerState);
+
+        const hasSeenTutorial = localStorage.getItem("has-seen-tutorial");
+        if (!hasSeenTutorial) {
+            startTutorial();
+            localStorage.setItem("has-seen-tutorial", "true");
+        }
 
         function handleKeydown(e: KeyboardEvent) {
             if (!get(settings).shortcuts) return;
@@ -424,26 +494,39 @@
     }
 </script>
 
-<div
-    class="page-container"
-    bind:this={containerRef}
-    class:resizing={isResizing}
->
-    <Header theme={$settings.theme}>
-        {#snippet middle()}
-            <ChallengeManager
-                {activeChallenge}
-                {activeChallengeId}
-                onActivate={setChallenge}
-                onDeactivate={clearChallenge}
-                theme={$settings.theme}
-            />
-            <ProblemSelector
-                {activeProblem}
-                onSelect={setProblem}
-                onClear={clearProblem}
-                theme={$settings.theme}
-            />
+    <div
+
+        class="page-container"
+
+        bind:this={containerRef}
+
+        class:resizing={isResizing}
+
+    >
+
+        <Header theme={$settings.theme} onShowTutorial={startTutorial}>
+
+            {#snippet middle()}
+
+                <div id="challenge-manager">
+
+
+                <ChallengeManager
+                    {activeChallenge}
+                    {activeChallengeId}
+                    onActivate={setChallenge}
+                    onDeactivate={clearChallenge}
+                    theme={$settings.theme}
+                />
+            </div>
+            <div id="problem-selector">
+                <ProblemSelector
+                    {activeProblem}
+                    onSelect={setProblem}
+                    onClear={clearProblem}
+                    theme={$settings.theme}
+                />
+            </div>
             {#if activeProblem}
                 <button class="give-up-btn" onclick={giveUp}>Give Up</button>
             {/if}
@@ -504,7 +587,7 @@
         </div>
     {/if}
 
-    <div class="editor-section" class:hidden={!editorVisible}>
+    <div id="editor-section" class="editor-section" class:hidden={!editorVisible}>
         <Monaco
             bind:value={monacoValue}
             bind:editor={monacoEditor}
@@ -526,7 +609,7 @@
         tabindex="-1"
     ></div>
 
-    <div class="terminal-section" style="height: {terminalHeight}px">
+    <div id="terminal-section" class="terminal-section" style="height: {terminalHeight}px">
         <Terminal
             bind:this={terminalRef}
             onCommand={handleCommand}

@@ -83,7 +83,15 @@
         document.removeEventListener("keydown", handleKeydown);
     });
 
-    let { middle, theme = "dark" }: { middle?: import("svelte").Snippet, theme?: "dark" | "light" } = $props();
+    let {
+        middle,
+        theme = "dark",
+        onShowTutorial,
+    }: {
+        middle?: import("svelte").Snippet;
+        theme?: "dark" | "light";
+        onShowTutorial?: () => void;
+    } = $props();
 
     async function copyRoomLink() {
         await navigator.clipboard.writeText(window.location.href);
@@ -120,7 +128,7 @@
     <button class="copy-btn" onclick={copyRoomLink}>
         {copied ? "Copied!" : "Copy Link"}
     </button>
-    <div class="settings-wrapper">
+    <div id="settings-menu" class="settings-wrapper">
         <Hamburger
             {open}
             duoLine={false}
@@ -155,18 +163,26 @@
                     </button>
                 </div>
                 {#if $settings.shortcuts}
-                    <div class="setting-row shortcuts">
-                        <div class="shortcut-list">
-                            <div><kbd>^`</kbd> Terminal</div>
-                            <div><kbd>⌘1</kbd> Editor</div>
-                        </div>
+                <div class="setting-row shortcuts">
+                    <div class="shortcut-list">
+                        <div><kbd>^`</kbd> Terminal</div>
+                        <div><kbd>⌘1</kbd> Editor</div>
                     </div>
+                </div>
                 {/if}
                 <div class="setting-row reset-row">
                     <button class="reset-settings-btn" onclick={() => settings.reset()}>
                         Reset to Defaults
                     </button>
                 </div>
+                {#if onShowTutorial}
+                    <div class="setting-row">
+                        <span>Tutorial</span>
+                        <button onclick={() => { open = false; onShowTutorial(); }}>
+                            Show
+                        </button>
+                    </div>
+                {/if}
             </div>
         {/if}
     </div>
@@ -324,8 +340,6 @@
     .reset-row {
         justify-content: center;
         padding-top: 12px;
-        border-top: 1px solid var(--term-border);
-        margin-top: 4px;
     }
 
     .reset-settings-btn {

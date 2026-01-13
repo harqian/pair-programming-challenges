@@ -1,11 +1,16 @@
 <script lang="ts">
     import { onDestroy, onMount } from "svelte";
-    import { getPartySocket } from "$lib/partyContext";
+    import { getPartySocket, getYjsProvider } from "$lib/partyContext";
     import { settings } from "$lib/settings";
     import { timer } from "$lib/timerStore";
     import Hamburger from "./Hamburger.svelte";
 
     const socket = getPartySocket();
+    const provider = getYjsProvider();
+    const awareness = provider?.awareness;
+
+    type User = { name: string; color: string; clientId: number };
+    let connectedUsers: User[] = $state([]);
     let copied = $state(false);
 
     let interval: number | undefined = undefined;
@@ -41,18 +46,32 @@
         return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
     }
 
+    function updateUsers() {
+        if (!awareness) return;
+        const states = awareness.getStates();
+        const users: User[] = [];
+        states.forEach((state, clientId) => {
+            if (state.user?.name && state.user?.color) {
+                users.push({ name: state.user.name, color: state.user.color, clientId });
+            }
+        });
+        connectedUsers = users;
+    }
+
     onMount(() => {
-        // Start interval for local display updates
         interval = setInterval(updateElapsed, 1000);
 
-        if (!socket) return;
-        
-        // Keep the socket for copy link or other things if needed
-        // but timer is now handled via Yjs in +page.svelte
+        if (awareness) {
+            awareness.on("change", updateUsers);
+            updateUsers();
+        }
     });
 
     onDestroy(() => {
         if (interval) clearInterval(interval);
+        if (awareness) {
+            awareness.off("change", updateUsers);
+        }
     });
 
     let { middle, theme = "dark" }: { middle?: import("svelte").Snippet, theme?: "dark" | "light" } = $props();
@@ -69,6 +88,11 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     </a>
     <h2>Pair Programming Challenge 👬</h2>
+    <div class="connected-users">
+        {#each connectedUsers as user (user.clientId)}
+            <span class="user-badge" style="background-color: {user.color};">{user.name}</span>
+        {/each}
+    </div>
     {#if middle}
         {@render middle()}
     {/if}
@@ -157,11 +181,24 @@
     }
 
     h2 {
-        flex-grow: 1;
         font-weight: normal;
         margin: 0;
         font-size: 1rem;
         color: var(--term-text);
+    }
+
+    .connected-users {
+        display: flex;
+        gap: 6px;
+        flex-grow: 1;
+    }
+
+    .user-badge {
+        padding: 2px 8px;
+        font-size: 0.75rem;
+        font-weight: bold;
+        color: #000;
+        white-space: nowrap;
     }
 
     .timer-section {

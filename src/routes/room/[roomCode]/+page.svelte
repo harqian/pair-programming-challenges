@@ -532,7 +532,7 @@
             onCommand={handleCommand}
             welcomeMessage="Welcome to room '{roomCode}'!
 
-Type 'run' to execute your Python code, 'help' for available commands, or 'clear' to clear the terminal."
+Type 'run' to execute your Python code, control C (^C) to stop execution, 'help' for available commands, or 'clear' to clear the terminal."
             maxHeight="100%"
             yArray={terminalYArray}
             awareness={terminalAwareness}

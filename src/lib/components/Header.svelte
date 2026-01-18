@@ -77,7 +77,7 @@
 
     onDestroy(() => {
         if (interval) clearInterval(interval);
-        if (awareness) {
+        if (awareness && awareness.off) {
             awareness.off("change", updateUsers);
         }
         document.removeEventListener("keydown", handleKeydown);
@@ -146,7 +146,7 @@
         <Hamburger
             {open}
             duoLine={false}
-            on:click={() => (open = !open)}
+            onclick={() => (open = !open)}
         />
         {#if open}
             <div class="settings-panel">

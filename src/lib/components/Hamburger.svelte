@@ -1,24 +1,21 @@
 <!--
   ## Animated hamburger menu icon
 -->
-<script>
+<script lang="ts">
     /** Whether the icon is in an open state */
-    export let open;
-    /** Whether to show only 2 lines */
-    export let duoLine;
+    let { open, duoLine = false, onclick, class: className = "" } = $props();
 
     const EASING = `cubic-bezier(0.4, 0, 0.2, 1)`;
-    $: lineTransition = open
+    let lineTransition = $derived(open
         ? `top 300ms 50ms ${EASING}, transform 300ms 350ms ${EASING}`
-        : `top 300ms 350ms ${EASING}, transform 300ms 50ms ${EASING}`;
+        : `top 300ms 350ms ${EASING}, transform 300ms 50ms ${EASING}`);
 </script>
 
 <div
-    class="hamburger {$$props.class || ''}"
+    class="hamburger {className}"
     class:open
-    on:click
-    on:keydown
-    on:keypress
+    {onclick}
+    onkeydown={(e) => e.key === "Enter" && onclick?.(e)}
     role="button"
     tabindex="0"
 >

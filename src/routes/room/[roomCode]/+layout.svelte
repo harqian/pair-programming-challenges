@@ -7,6 +7,7 @@
     import { setYjsProvider, setYjsDoc } from "$lib/partyContext";
     import { settings } from "$lib/settings";
     import { env } from "$env/dynamic/public";
+    import { PUBLIC_PARTYKIT_HOST as STATIC_HOST } from "$env/static/public";
 
     let { children } = $props();
 
@@ -19,8 +20,22 @@
     const userColor = colors[Math.floor(Math.random() * colors.length)];
 
     const yDoc = new Y.Doc();
-    const partyHost = env.PUBLIC_PARTYKIT_HOST || "localhost:1999";
-    const isLocalhost = partyHost.includes("localhost");
+    
+    // LAYERED LOOKUP:
+    // 1. Try static env (available if provided during build)
+    // 2. Try dynamic env (available if provided during runtime on server-rendered page)
+    // 3. Try hardcoded fallback or current domain
+    const partyHost = STATIC_HOST || env.PUBLIC_PARTYKIT_HOST || (typeof window !== "undefined" ? window.location.host : "localhost:1999");
+    
+    if (typeof window !== "undefined") {
+        console.log("[DEBUG] Connection Info:", {
+            staticHost: STATIC_HOST,
+            dynamicHost: env.PUBLIC_PARTYKIT_HOST,
+            selectedHost: partyHost
+        });
+    }
+
+    const isLocalhost = partyHost.includes("localhost") || partyHost.includes("127.0.0.1");
     const provider = new YPartyKitProvider(
         partyHost,
         `game-${roomCode}`,
@@ -70,7 +85,11 @@
         });
         sendIdentify(initialName);
 
-        return () => provider.off("status", handleStatus);
+        return () => {
+            if (provider.off) {
+                provider.off("status", handleStatus);
+            }
+        };
     });
 
     $effect(() => {

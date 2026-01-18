@@ -347,7 +347,7 @@
         })();
 
         return () => {
-            if (awareness) {
+            if (awareness && awareness.off) {
                 awareness.off("change", updateRemoteCursors);
             }
             remoteCursors.forEach(c => c.dispose());

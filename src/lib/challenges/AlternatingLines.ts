@@ -1,7 +1,6 @@
 // lib/challenges/AlternatingLines.ts
 import { Challenge, type ChallengeContext } from './base';
 import type * as monaco from 'monaco-editor';
-import { Range } from 'monaco-editor';
 import * as Y from 'yjs';
 
 export class AlternatingLines extends Challenge {
@@ -194,7 +193,12 @@ export class AlternatingLines extends Challenge {
             // Show all lines as locked for non-hosts
             if (totalLines > 0) {
                 newDecorations.push({
-                    range: new Range(1, 1, totalLines, model.getLineMaxColumn(totalLines)),
+                    range: {
+                        startLineNumber: 1,
+                        startColumn: 1,
+                        endLineNumber: totalLines,
+                        endColumn: model.getLineMaxColumn(totalLines)
+                    },
                     options: {
                         isWholeLine: true,
                         className: 'relay-locked-line',
@@ -208,7 +212,12 @@ export class AlternatingLines extends Challenge {
             for (let i = 1; i <= totalLines; i++) {
                 if (i === this.currentLineNumber) {
                     newDecorations.push({
-                        range: new Range(i, 1, i, model.getLineMaxColumn(i)),
+                        range: {
+                            startLineNumber: i,
+                            startColumn: 1,
+                            endLineNumber: i,
+                            endColumn: model.getLineMaxColumn(i)
+                        },
                         options: {
                             isWholeLine: true,
                             className: 'relay-active-line',
@@ -217,7 +226,12 @@ export class AlternatingLines extends Challenge {
                     });
                 } else {
                     newDecorations.push({
-                        range: new Range(i, 1, i, model.getLineMaxColumn(i)),
+                        range: {
+                            startLineNumber: i,
+                            startColumn: 1,
+                            endLineNumber: i,
+                            endColumn: model.getLineMaxColumn(i)
+                        },
                         options: {
                             isWholeLine: true,
                             className: 'relay-locked-line'

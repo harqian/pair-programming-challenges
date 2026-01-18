@@ -1,7 +1,6 @@
 import { walkAst } from '$lib/engine';
 import { Challenge, type ChallengeContext } from './base';
 import type * as monaco from 'monaco-editor';
-import { Range } from 'monaco-editor';
 
 interface ViolationRule {
     nodeTypes: string[];
@@ -104,12 +103,12 @@ export class NoForLoops extends Challenge {
 
         // Full range highlighting
         decorations.push({
-            range: new Range(
-                pos.start.line,
-                pos.start.column,
-                pos.end?.line ?? pos.start.line,
-                (pos.end?.column ?? pos.start.column) + 1
-            ),
+            range: {
+                startLineNumber: pos.start.line,
+                startColumn: pos.start.column,
+                endLineNumber: pos.end?.line ?? pos.start.line,
+                endColumn: (pos.end?.column ?? pos.start.column) + 1
+            },
             options: {
                 isWholeLine: true,
                 className: 'error-line-highlight',
@@ -119,12 +118,12 @@ export class NoForLoops extends Challenge {
 
         // Inline message on first line
         decorations.push({
-            range: new Range(
-                pos.start.line,
-                pos.start.column,
-                pos.start.line,
-                model.getLineMaxColumn(pos.start.line)
-            ),
+            range: {
+                startLineNumber: pos.start.line,
+                startColumn: pos.start.column,
+                endLineNumber: pos.start.line,
+                endColumn: model.getLineMaxColumn(pos.start.line)
+            },
             options: {
                 after: {
                     content: ` ${message}`,

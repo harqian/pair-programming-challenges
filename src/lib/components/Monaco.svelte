@@ -5,7 +5,6 @@
 <script lang="ts">
     import type * as monaco from "monaco-editor";
     import { onMount } from "svelte";
-    import { RemoteCursorManager, RemoteSelectionManager } from "@convergencelabs/monaco-collab-ext";
     import type { Awareness } from "y-protocols/awareness";
     import * as Y from "yjs";
 
@@ -29,8 +28,8 @@
         showCursors = true,
     }: Props = $props();
 
-    let cursorManager: RemoteCursorManager | undefined;
-    let selectionManager: RemoteSelectionManager | undefined;
+    let cursorManager: any;
+    let selectionManager: any;
     const remoteCursors = new Map<number, any>();
     const remoteSelections = new Map<number, any>();
 
@@ -313,8 +312,9 @@
                 value = editor!.getValue();
             });
 
-            // Initialize collaborative managers
-            cursorManager = new RemoteCursorManager({ 
+            // Initialize collaborative managers (dynamic import for SSR compatibility)
+            const { RemoteCursorManager, RemoteSelectionManager } = await import("@convergencelabs/monaco-collab-ext");
+            cursorManager = new RemoteCursorManager({
                 editor: editor!,
                 tooltips: true,
                 tooltipDuration: 4 // Keep label visible for 4 seconds after movement

@@ -6,10 +6,10 @@
     import YPartyKitProvider from "y-partykit/provider";
     import { setYjsProvider, setYjsDoc } from "$lib/partyContext";
     import { settings } from "$lib/settings";
+    import { PUBLIC_PARTYKIT_HOST } from "$env/static/public";
 
     let { children } = $props();
 
-    // Get room code synchronously for socket creation
     const roomCode = get(page).params.roomCode;
 
     const colors = [
@@ -19,14 +19,12 @@
     const userColor = colors[Math.floor(Math.random() * colors.length)];
 
     const yDoc = new Y.Doc();
+    const isLocalhost = PUBLIC_PARTYKIT_HOST.includes("localhost");
     const provider = new YPartyKitProvider(
-        `${globalThis.location?.hostname ?? "localhost"}:1999`,
+        PUBLIC_PARTYKIT_HOST,
         `game-${roomCode}`,
         yDoc,
-        {
-            protocol: "ws",
-            connect: false,
-        },
+        { protocol: isLocalhost ? "ws" : "wss", connect: false }
     );
 
     setYjsDoc(yDoc);
@@ -35,10 +33,7 @@
     let pendingIdentifyName: string | null = null;
 
     function sendIdentify(name: string) {
-        const payload = JSON.stringify({
-            type: "identify",
-            name,
-        });
+        const payload = JSON.stringify({ type: "identify", name });
 
         if (provider.wsconnected && provider.ws) {
             console.log("[client] sending identify", { name, room: roomCode });
@@ -73,6 +68,7 @@
             color: userColor,
         });
         sendIdentify(initialName);
+
         return () => provider.off("status", handleStatus);
     });
 
@@ -83,7 +79,6 @@
             color: userColor,
         });
 
-        // Identify to the server for system messages
         if (provider.shouldConnect) {
             sendIdentify(name);
         }

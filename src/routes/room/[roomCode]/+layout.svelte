@@ -6,7 +6,7 @@
     import YPartyKitProvider from "y-partykit/provider";
     import { setYjsProvider, setYjsDoc } from "$lib/partyContext";
     import { settings } from "$lib/settings";
-    import { PUBLIC_PARTYKIT_HOST } from "$env/static/public";
+    import { env } from "$env/dynamic/public";
 
     let { children } = $props();
 
@@ -19,9 +19,10 @@
     const userColor = colors[Math.floor(Math.random() * colors.length)];
 
     const yDoc = new Y.Doc();
-    const isLocalhost = PUBLIC_PARTYKIT_HOST.includes("localhost");
+    const partyHost = env.PUBLIC_PARTYKIT_HOST || "localhost:1999";
+    const isLocalhost = partyHost.includes("localhost");
     const provider = new YPartyKitProvider(
-        PUBLIC_PARTYKIT_HOST,
+        partyHost,
         `game-${roomCode}`,
         yDoc,
         { protocol: isLocalhost ? "ws" : "wss", connect: false }

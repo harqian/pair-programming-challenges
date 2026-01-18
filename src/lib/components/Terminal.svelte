@@ -682,6 +682,10 @@
     style="max-height: {maxHeight}"
     bind:this={terminalRef}
     onclick={focusInput}
+    onkeydown={(e) => e.key === "Enter" && focusInput()}
+    role="textbox"
+    tabindex="0"
+    aria-label="Terminal"
 >
     <div
         class="terminal-content"

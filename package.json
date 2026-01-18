@@ -7,6 +7,7 @@
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
+		"start": "node build/index.js",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
@@ -24,7 +25,7 @@
 	},
 	"dependencies": {
 		"@convergencelabs/monaco-collab-ext": "^0.4.0",
-		"@sveltejs/adapter-cloudflare": "^7.2.4",
+		"@sveltejs/adapter-node": "^5.0.0",
 		"driver.js": "^1.4.0",
 		"mitt": "^3.0.1",
 		"monaco-editor": "^0.55.1",

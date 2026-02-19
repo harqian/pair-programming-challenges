@@ -1,38 +1,33 @@
-# sv
+# debuff.dev
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+A small real-time pair-programming app for coding challenges.
 
-## Creating a project
+Create a room, share the code, and solve problems together with a synced editor and built-in Python runtime.
 
-If you're seeing this, you've probably already done this step. Congrats!
+## Features
 
-```sh
-# create a new project in the current directory
-npx sv create
+- Real-time collaborative code editor with shared cursors and presence
+- Private room links/codes for quick pair sessions
+- Built-in Python execution in a shared terminal workflow
+- Problem picker for challenge-based practice
+- Optional challenge modes (for example blind coding constraints)
+- Shared timer flow for timed rounds
+- In-app onboarding tour plus configurable editor/theme settings
 
-# create a new project in my-app
-npx sv create my-app
-```
+## Run locally
 
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
+```bash
+npm install
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
+Then open the local URL shown by Vite.
 
-To create a production version of your app:
+## Scripts
 
-```sh
-npm run build
+```bash
+npm run dev      # start local dev server
+npm run build    # production build
+npm run preview  # preview production build
+npm run check    # Svelte/TypeScript checks
 ```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
